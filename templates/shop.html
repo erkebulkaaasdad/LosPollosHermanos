@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>LosPollosHermanos — Магазин</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header>
+  <h1>Магазин</h1>
+  <p>Тратьте баллы на эксклюзивные товары</p>
+  <div class="nav-links">
+    <a href="/client" class="role-switch">На главную</a>
+    <a href="/logout" class="logout-btn">Выйти</a>
+  </div>
+</header>
+
+<div class="container">
+  <div class="card">
+    <div class="points-badge">Ваш баланс: <span id="userPoints">{{ user.points }}</span> баллов</div>
+    
+    <h2>Доступные товары</h2>
+    <div class="shop-grid">
+      {% for item in items %}
+      <div class="shop-item">
+        <div>
+          <h3>{{ item.name }}</h3>
+          <p>{{ item.description }}</p>
+        </div>
+        <div>
+          <div class="price">{{ item.price }} баллов</div>
+          <button onclick="buyItem({{ item.id }}, {{ item.price }})">Купить</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+  async function buyItem(itemId, price) {
+    const pointsSpan = document.getElementById('userPoints');
+    const currentPoints = parseInt(pointsSpan.innerText);
+    if (currentPoints < price) {
+        alert("Недостаточно баллов!");
+        return;
+    }
+
+    if (!confirm("Вы уверены, что хотите купить этот товар?")) return;
+
+    try {
+        const response = await fetch('/buy_item', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ item_id: itemId })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert("Поздравляем с покупкой!");
+            pointsSpan.innerText = result.points;
+        } else {
+            alert(result.error || "Ошибка при покупке");
+        }
+    } catch (e) {
+        alert("Ошибка соединения с сервером");
+    }
+  }
+</script>
+
+</body>
+</html>

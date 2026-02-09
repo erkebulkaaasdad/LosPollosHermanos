@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+instance/
+.env
+database.db
+server.log
+nohup.out

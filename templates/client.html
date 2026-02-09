@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>LosPollosHermanos — Житель</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .report-item { border-bottom: 1px solid #eee; padding: 10px 0; }
+    .status-available { color: #f39c12; font-weight: bold; }
+    .status-completed { color: #27ae60; font-weight: bold; }
+    .nav-links { margin-top: 15px; }
+    .nav-links a { color: white; text-decoration: none; font-weight: bold; margin-right: 15px; font-size: 14px; }
+    .role-switch { background: white; color: var(--primary-color); padding: 5px 15px; border-radius: 4px; }
+    .logout-btn { background: rgba(0, 0, 0, 0.1); padding: 5px 15px; border-radius: 4px; }
+    .points-display { background: #fff9db; color: #856404; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Житель</h1>
+  <p>Сообщить о проблеме</p>
+  <div class="nav-links">
+    <a href="/worker" class="role-switch">Перейти в Рабочий</a>
+    <a href="/shop">Магазин <span class="points-display">{{ user.points }}</span></a>
+    <a href="/logout" class="logout-btn">Выйти</a>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2>Новая заявка</h2>
+
+    <label>Тип проблемы</label>
+    <select id="type">
+      <option>Яма на дороге</option>
+      <option>Сломанный светофор</option>
+      <option>Открытый люк</option>
+      <option>Мусор</option>
+      <option>Другое</option>
+    </select>
+
+    <label>Адрес / место</label>
+    <textarea id="location" placeholder="Например: ул. Абая, дом 25"></textarea>
+
+    <label>Фото проблемы</label>
+    <input type="file" id="photo" accept="image/*">
+
+    <button onclick="submitReport()">Отправить</button>
+  </div>
+
+  <div class="card">
+    <h2>Мои заявки</h2>
+    <div id="reportList">
+      {% for report in reports %}
+      <div class="report-item">
+        <strong>{{ report.title }}</strong><br>
+        📍 {{ report.location }}<br>
+        Статус: <span class="status-{{ report.status }}">{{ 'В работе' if report.status == 'available' else 'Исправлено' }}</span>
+      </div>
+      {% else %}
+      <p>Вы еще не отправляли заявок.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+  async function submitReport() {
+    const type = document.getElementById("type").value;
+    const location = document.getElementById("location").value;
+    const photoInput = document.getElementById("photo");
+    
+    if (!location) {
+      alert("Введите адрес");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('type', type);
+    formData.append('location', location);
+    if (photoInput.files[0]) {
+        formData.append('photo', photoInput.files[0]);
+    }
+
+    try {
+        const response = await fetch('/submit_report', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            alert("Заявка успешно отправлена! Она появится у рабочих.");
+            window.location.reload(); 
+        } else {
+            const result = await response.json();
+            alert(result.error || "Ошибка при отправке");
+        }
+    } catch (e) {
+        alert("Ошибка соединения с сервером");
+    }
+  }
+</script>
+
+</body>
+</html>
