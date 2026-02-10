@@ -5,7 +5,7 @@ from werkzeug.utils import secure_filename
 import os
 
 app = Flask(__name__)
-app.secret_key = 'los_pollos_hermanos_secret_key'
+app.secret_key = 'lospollos_secret_key'
 
 # Database configuration
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -52,7 +52,7 @@ with app.app_context():
     db.create_all()
     if not ShopItem.query.first():
         items = [
-            ShopItem(name="Фирменная кепка", price=500, description="Кепка с логотипом Los Pollos Hermanos"),
+            ShopItem(name="Фирменная кепка", price=500, description="Кепка с логотипом LosPollos"),
             ShopItem(name="Футболка", price=1000, description="Стильная футболка для лучших работников"),
             ShopItem(name="Сертификат на обед", price=1500, description="Бесплатное комбо в нашем ресторане"),
             ShopItem(name="Инструменты", price=3000, description="Набор профессиональных инструментов")
