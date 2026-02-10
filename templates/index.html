@@ -6,8 +6,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
-    .location-fields { display: none; margin-top: 10px; }
+    .location-fields { 
+        display: none; 
+        margin-top: 15px; 
+        padding: 15px;
+        background: rgba(0, 0, 0, 0.03);
+        border-radius: 8px;
+        border: 1px dashed var(--primary-color);
+    }
     .kz-only { display: none; }
+    .auth-tabs {
+        display: flex;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #eee;
+    }
+    .auth-tab {
+        flex: 1;
+        text-align: center;
+        padding: 10px;
+        cursor: pointer;
+        font-weight: bold;
+        color: #888;
+    }
+    .auth-tab.active {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-color);
+    }
+    select, input {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
   </style>
 </head>
 <body>
@@ -23,15 +55,21 @@
 
 <div class="container">
   <div class="card" id="authCard">
-    <h2 id="formTitle">{{ _('login') }} / {{ _('register') }}</h2>
+    <div class="auth-tabs">
+        <div class="auth-tab active" id="tabLogin" onclick="switchTab('login')">{{ _('login') }}</div>
+        <div class="auth-tab" id="tabRegister" onclick="switchTab('register')">{{ _('register') }}</div>
+    </div>
     
-    <label>Email</label>
-    <input type="email" id="email" placeholder="example@mail.com">
-    
-    <label>Пароль</label>
-    <input type="password" id="password" placeholder="******">
+    <div id="basicFields">
+        <label>Email</label>
+        <input type="email" id="email" placeholder="example@mail.com">
+        
+        <label>Пароль</label>
+        <input type="password" id="password" placeholder="******">
+    </div>
     
     <div id="registerFields" class="location-fields">
+      <h4 style="margin-top:0; color: var(--primary-color);">Данные о местоположении</h4>
       <label>{{ _('country') }}</label>
       <select id="country" onchange="toggleKzFields()">
         <option value="">-- Выберите страну --</option>
@@ -61,9 +99,8 @@
       </div>
     </div>
     
-    <div style="display: flex; gap: 10px; margin-top: 20px;">
-        <button id="loginBtn" onclick="handleAuth('login')">{{ _('login') }}</button>
-        <button id="regBtn" onclick="handleAuth('register')" style="background: var(--success-color);">{{ _('register') }}</button>
+    <div style="margin-top: 20px;">
+        <button id="submitBtn" onclick="handleAuth()" style="width: 100%;">{{ _('login') }}</button>
     </div>
     
     <div id="message" style="margin-top: 15px; text-align: center; font-weight: bold;"></div>
@@ -72,6 +109,32 @@
 
 <script>
   const kzLocations = {{ kz_locations|tojson }};
+  let currentMode = 'login';
+
+  function switchTab(mode) {
+    currentMode = mode;
+    const regFields = document.getElementById('registerFields');
+    const submitBtn = document.getElementById('submitBtn');
+    const tabLogin = document.getElementById('tabLogin');
+    const tabRegister = document.getElementById('tabRegister');
+    const messageDiv = document.getElementById('message');
+
+    messageDiv.innerText = "";
+
+    if (mode === 'register') {
+        regFields.style.display = 'block';
+        submitBtn.innerText = "{{ _('register') }}";
+        submitBtn.style.background = "var(--success-color)";
+        tabRegister.classList.add('active');
+        tabLogin.classList.remove('active');
+    } else {
+        regFields.style.display = 'none';
+        submitBtn.innerText = "{{ _('login') }}";
+        submitBtn.style.background = "var(--primary-color)";
+        tabLogin.classList.add('active');
+        tabRegister.classList.remove('active');
+    }
+  }
 
   function toggleKzFields() {
     const country = document.getElementById('country').value;
@@ -103,26 +166,19 @@
     }
   }
 
-  async function handleAuth(type) {
+  async function handleAuth() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const messageDiv = document.getElementById('message');
-    const regFields = document.getElementById('registerFields');
-
-    if (type === 'register' && regFields.style.display === 'none') {
-      regFields.style.display = 'block';
-      messageDiv.innerText = "Пожалуйста, укажите ваше местоположение для регистрации";
-      messageDiv.style.color = "var(--primary-color)";
-      return;
-    }
     
     if (!email || !password) {
-      alert("Заполните все поля");
+      alert("Заполните Email и Пароль");
       return;
     }
 
     const payload = { email, password };
-    if (type === 'register') {
+    
+    if (currentMode === 'register') {
       payload.country = document.getElementById('country').value;
       if (payload.country === "Казахстан") {
         payload.region = document.getElementById('region').value;
@@ -133,12 +189,12 @@
       }
       
       if (!payload.country || !payload.city) {
-        alert("Заполните данные о местоположении");
+        alert("Пожалуйста, заполните данные о местоположении (Страна и Город)");
         return;
       }
     }
 
-    const url = type === 'login' ? '/login' : '/register';
+    const url = currentMode === 'login' ? '/login' : '/register';
     
     try {
       const response = await fetch(url, {
@@ -150,12 +206,12 @@
       const result = await response.json();
 
       if (response.ok) {
-        if (type === 'login') {
+        if (currentMode === 'login') {
           window.location.href = '/client';
         } else {
           messageDiv.innerText = "Регистрация успешна! Теперь вы можете войти.";
           messageDiv.style.color = "var(--success-color)";
-          regFields.style.display = 'none';
+          switchTab('login');
         }
       } else {
         messageDiv.innerText = result.error || "Ошибка";
