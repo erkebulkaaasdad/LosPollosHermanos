@@ -1,108 +1,70 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ current_lang }}">
 <head>
   <meta charset="UTF-8">
-  <title>Добро пожаловать в LosPollos</title>
+  <title>{{ _('welcome_title') }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
     .hero { padding: 4rem 1rem; text-align: center; }
     .hero h1 { font-size: 2.8rem; color: var(--text-main); margin-bottom: 1.5rem; }
     .hero p { font-size: 1.2rem; color: var(--text-muted); max-width: 600px; margin: 0 auto 2rem; }
-    
-    /* Slideshow Styles */
-    .slideshow-container {
-      max-width: 800px;
-      position: relative;
-      margin: 2rem auto;
-      border-radius: var(--border-radius);
-      overflow: hidden;
-      box-shadow: var(--shadow);
-      aspect-ratio: 16 / 9;
-      background: #eee;
-    }
-    .mySlides {
-      display: none;
-      width: 100%;
-      height: 100%;
-    }
-    .mySlides img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .fade {
-      animation-name: fade;
-      animation-duration: 1.5s;
-    }
-    @keyframes fade {
-      from {opacity: .4} 
-      to {opacity: 1}
-    }
-    .slideshow-text {
-      position: absolute;
-      bottom: 20px;
-      left: 0;
-      right: 0;
-      background: rgba(0,0,0,0.5);
-      color: white;
-      padding: 10px;
-      font-weight: bold;
-    }
-
     .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 3rem; }
     .feature-card { background: white; padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border: 1px solid var(--border-color); text-align: center; }
     .feature-card h3 { color: var(--primary-color); margin-bottom: 1rem; }
     .cta-button { display: inline-block; background: var(--primary-color); color: white; padding: 15px 40px; border-radius: 30px; text-decoration: none; font-weight: bold; font-size: 1.1rem; transition: all 0.3s; }
     .cta-button:hover { background: var(--primary-dark); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(74, 144, 226, 0.2); }
-    header { padding: 4rem 1rem; }
   </style>
 </head>
 <body>
 
 <header>
+  <div class="lang-switcher">
+    <a href="/set_lang/ru" class="lang-btn {{ 'active' if current_lang == 'ru' else '' }}">RU</a>
+    <a href="/set_lang/kk" class="lang-btn {{ 'active' if current_lang == 'kk' else '' }}">KK</a>
+  </div>
   <h1>LosPollos</h1>
-  <p>Вместе мы сделаем наш город лучше</p>
+  <p>{{ _('tagline') }}</p>
 </header>
 
 <div class="container">
   <div class="hero">
-    <h1>Как это работает?</h1>
-    <p>Наш сервис объединяет активных жителей и трудолюбивых рабочих для решения городских проблем.</p>
+    <h1>{{ _('how_it_works') }}</h1>
+    <p>{{ _('description') }}</p>
 
     <!-- Slideshow Section -->
     <div class="slideshow-container">
       <div class="mySlides fade">
         <img src="{{ url_for('static', filename='images/trash1.jpg') }}">
-        <div class="slideshow-text">Горы мусора на улицах</div>
+        <div class="slideshow-text">{{ _('trash_on_streets') }}</div>
       </div>
       <div class="mySlides fade">
         <img src="{{ url_for('static', filename='images/pothole1.jpg') }}">
-        <div class="slideshow-text">Опасные ямы на дорогах</div>
+        <div class="slideshow-text">{{ _('potholes_on_roads') }}</div>
       </div>
       <div class="mySlides fade">
         <img src="{{ url_for('static', filename='images/trash2.jpg') }}">
-        <div class="slideshow-text">Несанкционированные свалки</div>
+        <div class="slideshow-text">{{ _('illegal_dumps') }}</div>
       </div>
     </div>
     
     <div class="features">
       <div class="feature-card">
-        <h3>Жителям</h3>
-        <p>Видите яму на дороге или сломанный светофор? Просто сфотографируйте и отправьте заявку. Мы найдем того, кто это исправит.</p>
+        <h3>{{ _('for_citizens') }}</h3>
+        <p>{{ _('citizen_desc') }}</p>
       </div>
       <div class="feature-card">
-        <h3>Рабочим</h3>
-        <p>Выполняйте заявки от жителей, прикрепляйте фотоотчет и получайте выплаты в Тенге за каждое успешно завершенное дело.</p>
+        <h3>{{ _('for_workers') }}</h3>
+        <p>{{ _('worker_desc') }}</p>
       </div>
       <div class="feature-card">
-        <h3>Награды</h3>
-        <p>Тратьте заработанные средства в нашем магазине на фирменную одежду, инструменты или сертификаты на вкусную еду.</p>
+        <h3>{{ _('rewards') }}</h3>
+        <p>{{ _('rewards_desc') }}</p>
       </div>
     </div>
 
     <div style="margin-top: 4rem;">
-      <a href="/auth" class="cta-button">Начать использовать</a>
+      <a href="/auth" class="cta-button">{{ _('start_button') }}</a>
     </div>
   </div>
 </div>
@@ -120,7 +82,7 @@
     slideIndex++;
     if (slideIndex > slides.length) {slideIndex = 1}    
     slides[slideIndex-1].style.display = "block";  
-    setTimeout(showSlides, 4000); // Change image every 4 seconds
+    setTimeout(showSlides, 4000);
   }
 </script>
 

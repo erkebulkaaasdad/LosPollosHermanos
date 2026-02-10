@@ -1,61 +1,63 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ current_lang }}">
 <head>
   <meta charset="UTF-8">
-  <title>LosPollos — Рабочий</title>
+  <title>LosPollos — {{ _('for_workers') }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
     .points-badge { background: #fff9db; color: #856404; padding: 10px 20px; border-radius: 30px; font-weight: bold; margin-bottom: 20px; display: inline-block; border: 1px solid #ffeeba; }
     .job { border-bottom: 1px solid #eee; padding: 15px 0; }
-    .job:last-child { border-bottom: none; }
     .nav-links { margin-top: 15px; }
     .nav-links a { color: white; text-decoration: none; font-weight: bold; margin-right: 15px; font-size: 14px; }
     .role-switch { background: white; color: var(--primary-color); padding: 5px 15px; border-radius: 4px; }
     .logout-btn { background: rgba(0, 0, 0, 0.1); padding: 5px 15px; border-radius: 4px; }
     .upload-area { margin-top: 10px; border: 1px dashed #ccc; padding: 10px; border-radius: 4px; }
-    input[type="file"] { margin-bottom: 10px; }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>Рабочий</h1>
-  <p>Список заданий</p>
+  <div class="lang-switcher">
+    <a href="/set_lang/ru" class="lang-btn {{ 'active' if current_lang == 'ru' else '' }}">RU</a>
+    <a href="/set_lang/kk" class="lang-btn {{ 'active' if current_lang == 'kk' else '' }}">KK</a>
+  </div>
+  <h1>{{ _('for_workers') }}</h1>
+  <p>{{ _('available_tasks') }}</p>
   <div class="nav-links">
-    <a href="/client" class="role-switch">Перейти в Житель</a>
-    <a href="/shop">Магазин</a>
-    <a href="/logout" class="logout-btn">Выйти</a>
+    <a href="/client" class="role-switch">{{ _('switch_to_citizen') }}</a>
+    <a href="/shop">{{ _('shop') }}</a>
+    <a href="/logout" class="logout-btn">{{ _('logout') }}</a>
   </div>
 </header>
 
 <div class="container">
   <div class="card">
-    <div class="points-badge">Ваш баланс: <span id="userPoints">{{ user.points }}</span> ₸</div>
+    <div class="points-badge">{{ _('balance') }}: <span id="userPoints">{{ user.points }}</span> ₸</div>
     
-    <h2>Доступные задания</h2>
+    <h2>{{ _('available_tasks') }}</h2>
     <div id="taskList">
       {% for task in tasks %}
       <div class="job" id="task-{{ task.id }}">
         <strong>{{ task.title }}</strong><br>
-        Адрес: {{ task.location }}<br>
+        {{ _('location') }}: {{ task.location }}<br>
         Выплата: {{ task.reward_points }} ₸<br><br>
         
         <div class="upload-area">
-          <label>Прикрепите фото результата:</label><br>
+          <label>{{ _('proof_photo') }}</label><br>
           <input type="file" id="photo-{{ task.id }}" accept="image/*">
-          <button onclick="completeTask({{ task.id }})">Завершить и получить баллы</button>
+          <button onclick="completeTask({{ task.id }})">{{ _('complete_task') }}</button>
         </div>
       </div>
       {% else %}
-      <p>Пока нет новых заданий.</p>
+      <p>{{ _('no_tasks') }}</p>
       {% endfor %}
     </div>
   </div>
 
   <div class="card">
-    <h2>О системе</h2>
-    <p>Для завершения задания необходимо загрузить фотографию выполненной работы. После загрузки средства будут начислены на ваш баланс автоматически.</p>
+    <h2>{{ _('about_system') }}</h2>
+    <p>{{ _('system_desc') }}</p>
   </div>
 </div>
 
@@ -63,11 +65,11 @@
   async function completeTask(taskId) {
     const fileInput = document.getElementById('photo-' + taskId);
     if (!fileInput.files[0]) {
-        alert("Пожалуйста, выберите фото для подтверждения выполнения!");
+        alert("Пожалуйста, выберите фото!");
         return;
     }
 
-    if (!confirm("Вы подтверждаете выполнение задания и загрузку фото?")) return;
+    if (!confirm("Вы подтверждаете выполнение?")) return;
 
     const formData = new FormData();
     formData.append('task_id', taskId);
@@ -82,17 +84,17 @@
         const result = await response.json();
 
         if (response.ok) {
-            alert("Задание выполнено! Фото загружено. Вам начислено: " + (result.points - parseInt(document.getElementById('userPoints').innerText)) + " ₸");
+            alert("Задание выполнено!");
             document.getElementById('userPoints').innerText = result.points;
             document.getElementById('task-' + taskId).remove();
             if (document.querySelectorAll('.job').length === 0) {
-                document.getElementById('taskList').innerHTML = '<p>Пока нет новых заданий.</p>';
+                document.getElementById('taskList').innerHTML = '<p>{{ _("no_tasks") }}</p>';
             }
         } else {
             alert(result.error || "Ошибка");
         }
     } catch (e) {
-        alert("Ошибка соединения с сервером");
+        alert("Ошибка соединения");
     }
   }
 </script>

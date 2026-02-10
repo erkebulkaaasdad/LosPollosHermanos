@@ -1,27 +1,31 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ current_lang }}">
 <head>
   <meta charset="UTF-8">
-  <title>LosPollos — Магазин</title>
+  <title>LosPollos — {{ _('shop_title') }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
 <header>
-  <h1>Магазин</h1>
-  <p>Тратьте баллы на эксклюзивные товары</p>
+  <div class="lang-switcher">
+    <a href="/set_lang/ru" class="lang-btn {{ 'active' if current_lang == 'ru' else '' }}">RU</a>
+    <a href="/set_lang/kk" class="lang-btn {{ 'active' if current_lang == 'kk' else '' }}">KK</a>
+  </div>
+  <h1>{{ _('shop_title') }}</h1>
+  <p>{{ _('shop_desc') }}</p>
   <div class="nav-links">
-    <a href="/client" class="role-switch">На главную</a>
-    <a href="/logout" class="logout-btn">Выйти</a>
+    <a href="/client" class="role-switch">{{ _('back_home') }}</a>
+    <a href="/logout" class="logout-btn">{{ _('logout') }}</a>
   </div>
 </header>
 
 <div class="container">
   <div class="card">
-    <div class="points-badge">Ваш баланс: <span id="userPoints">{{ user.points }}</span> ₸</div>
+    <div class="points-badge">{{ _('balance') }}: <span id="userPoints">{{ user.points }}</span> ₸</div>
     
-    <h2>Доступные товары</h2>
+    <h2>{{ _('available_items') }}</h2>
     <div class="shop-grid">
       {% for item in items %}
       <div class="shop-item">
@@ -31,7 +35,7 @@
         </div>
         <div>
           <div class="price">{{ item.price }} ₸</div>
-          <button onclick="buyItem({{ item.id }}, {{ item.price }})">Купить</button>
+          <button onclick="buyItem({{ item.id }}, {{ item.price }})">{{ _('buy') }}</button>
         </div>
       </div>
       {% endfor %}
@@ -44,11 +48,11 @@
     const pointsSpan = document.getElementById('userPoints');
     const currentPoints = parseInt(pointsSpan.innerText);
     if (currentPoints < price) {
-        alert("Недостаточно средств на балансе!");
+        alert("Недостаточно средств!");
         return;
     }
 
-    if (!confirm("Вы уверены, что хотите купить этот товар?")) return;
+    if (!confirm("Вы уверены?")) return;
 
     try {
         const response = await fetch('/buy_item', {
@@ -63,10 +67,10 @@
             alert("Поздравляем с покупкой!");
             pointsSpan.innerText = result.points;
         } else {
-            alert(result.error || "Ошибка при покупке");
+            alert(result.error || "Ошибка");
         }
     } catch (e) {
-        alert("Ошибка соединения с сервером");
+        alert("Ошибка соединения");
     }
   }
 </script>

@@ -1,14 +1,12 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ current_lang }}">
 <head>
   <meta charset="UTF-8">
-  <title>LosPollos — Житель</title>
+  <title>LosPollos — {{ _('for_citizens') }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
     .report-item { border-bottom: 1px solid #eee; padding: 10px 0; }
-    .status-available { color: #f39c12; font-weight: bold; }
-    .status-completed { color: #27ae60; font-weight: bold; }
     .nav-links { margin-top: 15px; }
     .nav-links a { color: white; text-decoration: none; font-weight: bold; margin-right: 15px; font-size: 14px; }
     .role-switch { background: white; color: var(--primary-color); padding: 5px 15px; border-radius: 4px; }
@@ -19,21 +17,25 @@
 <body>
 
 <header>
-  <h1>Житель</h1>
-  <p>Сообщить о проблеме</p>
+  <div class="lang-switcher">
+    <a href="/set_lang/ru" class="lang-btn {{ 'active' if current_lang == 'ru' else '' }}">RU</a>
+    <a href="/set_lang/kk" class="lang-btn {{ 'active' if current_lang == 'kk' else '' }}">KK</a>
+  </div>
+  <h1>{{ _('for_citizens') }}</h1>
+  <p>{{ _('tagline') }}</p>
   <div class="nav-links">
-    <a href="/worker" class="role-switch">Перейти в Рабочий</a>
-    <a href="/shop">Магазин <span class="points-display">{{ user.points }} ₸</span></a>
-    <a href="/logout" class="logout-btn">Выйти</a>
+    <a href="/worker" class="role-switch">{{ _('switch_to_worker') }}</a>
+    <a href="/shop">{{ _('shop') }} <span class="points-display">{{ user.points }} ₸</span></a>
+    <a href="/logout" class="logout-btn">{{ _('logout') }}</a>
   </div>
 </header>
 
 <div class="container">
 
   <div class="card">
-    <h2>Новая заявка</h2>
+    <h2>{{ _('new_report') }}</h2>
 
-    <label>Тип проблемы</label>
+    <label>{{ _('report_type') }}</label>
     <select id="type">
       <option>Яма на дороге</option>
       <option>Сломанный светофор</option>
@@ -42,26 +44,26 @@
       <option>Другое</option>
     </select>
 
-    <label>Адрес / место</label>
+    <label>{{ _('location') }}</label>
     <textarea id="location" placeholder="Например: ул. Абая, дом 25"></textarea>
 
-    <label>Фото проблемы</label>
+    <label>{{ _('photo') }}</label>
     <input type="file" id="photo" accept="image/*">
 
-    <button onclick="submitReport()">Отправить</button>
+    <button onclick="submitReport()">{{ _('submit') }}</button>
   </div>
 
   <div class="card">
-    <h2>Мои заявки</h2>
+    <h2>{{ _('my_reports') }}</h2>
     <div id="reportList">
       {% for report in reports %}
       <div class="report-item">
         <strong>{{ report.title }}</strong><br>
         📍 {{ report.location }}<br>
-        Статус: <span class="status-{{ report.status }}">{{ 'В работе' if report.status == 'available' else 'Исправлено' }}</span>
+        Статус: <span class="status-{{ report.status }}">{{ _('status_in_progress') if report.status == 'available' else _('status_fixed') }}</span>
       </div>
       {% else %}
-      <p>Вы еще не отправляли заявок.</p>
+      <p>{{ _('no_reports') }}</p>
       {% endfor %}
     </div>
   </div>
@@ -93,11 +95,11 @@
         });
 
         if (response.ok) {
-            alert("Заявка успешно отправлена! Она появится у рабочих.");
+            alert("Заявка успешно отправлена!");
             window.location.reload(); 
         } else {
             const result = await response.json();
-            alert(result.error || "Ошибка при отправке");
+            alert(result.error || "Ошибка");
         }
     } catch (e) {
         alert("Ошибка соединения с сервером");

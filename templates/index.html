@@ -1,78 +1,76 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ current_lang }}">
 <head>
   <meta charset="UTF-8">
-  <title>LosPollosHermanos</title>
+  <title>LosPollos — {{ _('login') }} / {{ _('register') }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <style>
-    .hidden { display: none; }
-    .error { color: #ff4d4d; margin-top: 10px; font-weight: bold; }
-    .success { color: #28a745; margin-top: 10px; font-weight: bold; }
-    input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-    .auth-buttons { display: flex; gap: 10px; margin-top: 10px; }
-    .auth-buttons button { flex: 1; }
-  </style>
 </head>
 <body>
 
 <header>
-  <h1>LosPollosHermanos</h1>
-  <p>Сообщай о проблемах — зарабатывай на их решении</p>
+  <div class="lang-switcher">
+    <a href="/set_lang/ru" class="lang-btn {{ 'active' if current_lang == 'ru' else '' }}">RU</a>
+    <a href="/set_lang/kk" class="lang-btn {{ 'active' if current_lang == 'kk' else '' }}">KK</a>
+  </div>
+  <h1>LosPollos</h1>
+  <p>{{ _('tagline') }}</p>
 </header>
 
 <div class="container">
-
-  <div id="authScreen" class="card">
-    <h2 id="authTitle">Вход / Регистрация</h2>
-    <p>Войдите, чтобы сообщать о проблемах или выполнять задания.</p>
-    <input id="email" placeholder="Email" type="email">
-    <input id="password" type="password" placeholder="Пароль">
-    <div class="auth-buttons">
-        <button onclick="handleAuth('login')">Войти</button>
-        <button onclick="handleAuth('register')" style="background: #28a745;">Регистрация</button>
+  <div class="card" id="authCard">
+    <h2 id="formTitle">{{ _('login') }} / {{ _('register') }}</h2>
+    
+    <label>Email</label>
+    <input type="email" id="email" placeholder="example@mail.com">
+    
+    <label>Пароль</label>
+    <input type="password" id="password" placeholder="******">
+    
+    <div style="display: flex; gap: 10px;">
+        <button onclick="handleAuth('login')">{{ _('login') }}</button>
+        <button onclick="handleAuth('register')" style="background: var(--success-color);">{{ _('register') }}</button>
     </div>
-    <div id="message"></div>
+    
+    <div id="message" style="margin-top: 15px; text-align: center; font-weight: bold;"></div>
   </div>
-
 </div>
 
 <script>
   async function handleAuth(type) {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-    const messageDiv = document.getElementById("message");
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const messageDiv = document.getElementById('message');
     
     if (!email || !password) {
-        messageDiv.innerText = "Заполните все поля";
-        messageDiv.className = "error";
-        return;
+      alert("Заполните все поля");
+      return;
     }
 
-    const endpoint = type === 'login' ? '/login' : '/register';
+    const url = type === 'login' ? '/login' : '/register';
+    
     try {
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
 
-        const result = await response.json();
+      const result = await response.json();
 
-        if (response.ok) {
-            if (type === 'login') {
-                window.location.href = '/client';
-            } else {
-                messageDiv.innerText = "Регистрация успешна! Теперь вы можете войти.";
-                messageDiv.className = "success";
-            }
+      if (response.ok) {
+        if (type === 'login') {
+          window.location.href = '/client';
         } else {
-            messageDiv.innerText = result.error || "Ошибка";
-            messageDiv.className = "error";
+          messageDiv.innerText = "Регистрация успешна! Теперь вы можете войти.";
+          messageDiv.style.color = "var(--success-color)";
         }
+      } else {
+        messageDiv.innerText = result.error || "Ошибка";
+        messageDiv.style.color = "var(--danger-color)";
+      }
     } catch (e) {
-        messageDiv.innerText = "Ошибка соединения с сервером";
-        messageDiv.className = "error";
+      alert("Ошибка соединения с сервером");
     }
   }
 </script>
