@@ -31,7 +31,7 @@
 
 <div class="container">
   <div class="card">
-    <div class="points-badge">Ваши баллы: <span id="userPoints">{{ user.points }}</span></div>
+    <div class="points-badge">Ваш баланс: <span id="userPoints">{{ user.points }}</span> ₸</div>
     
     <h2>Доступные задания</h2>
     <div id="taskList">
@@ -39,7 +39,7 @@
       <div class="job" id="task-{{ task.id }}">
         <strong>{{ task.title }}</strong><br>
         Адрес: {{ task.location }}<br>
-        Награда: {{ task.reward_points }} баллов<br><br>
+        Выплата: {{ task.reward_points }} ₸<br><br>
         
         <div class="upload-area">
           <label>Прикрепите фото результата:</label><br>
@@ -55,7 +55,7 @@
 
   <div class="card">
     <h2>О системе</h2>
-    <p>Для завершения задания необходимо загрузить фотографию выполненной работы. После загрузки баллы будут начислены автоматически.</p>
+    <p>Для завершения задания необходимо загрузить фотографию выполненной работы. После загрузки средства будут начислены на ваш баланс автоматически.</p>
   </div>
 </div>
 
@@ -82,7 +82,7 @@
         const result = await response.json();
 
         if (response.ok) {
-            alert("Задание выполнено! Фото загружено. Вам начислено баллов: " + (result.points - parseInt(document.getElementById('userPoints').innerText)));
+            alert("Задание выполнено! Фото загружено. Вам начислено: " + (result.points - parseInt(document.getElementById('userPoints').innerText)) + " ₸");
             document.getElementById('userPoints').innerText = result.points;
             document.getElementById('task-' + taskId).remove();
             if (document.querySelectorAll('.job').length === 0) {

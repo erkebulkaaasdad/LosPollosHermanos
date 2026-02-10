@@ -19,7 +19,7 @@
 
 <div class="container">
   <div class="card">
-    <div class="points-badge">Ваш баланс: <span id="userPoints">{{ user.points }}</span> баллов</div>
+    <div class="points-badge">Ваш баланс: <span id="userPoints">{{ user.points }}</span> ₸</div>
     
     <h2>Доступные товары</h2>
     <div class="shop-grid">
@@ -30,7 +30,7 @@
           <p>{{ item.description }}</p>
         </div>
         <div>
-          <div class="price">{{ item.price }} баллов</div>
+          <div class="price">{{ item.price }} ₸</div>
           <button onclick="buyItem({{ item.id }}, {{ item.price }})">Купить</button>
         </div>
       </div>
@@ -44,7 +44,7 @@
     const pointsSpan = document.getElementById('userPoints');
     const currentPoints = parseInt(pointsSpan.innerText);
     if (currentPoints < price) {
-        alert("Недостаточно баллов!");
+        alert("Недостаточно средств на балансе!");
         return;
     }
 

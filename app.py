@@ -52,10 +52,10 @@ with app.app_context():
     db.create_all()
     if not ShopItem.query.first():
         items = [
-            ShopItem(name="Фирменная кепка", price=500, description="Кепка с логотипом LosPollos"),
-            ShopItem(name="Футболка", price=1000, description="Стильная футболка для лучших работников"),
-            ShopItem(name="Сертификат на обед", price=1500, description="Бесплатное комбо в нашем ресторане"),
-            ShopItem(name="Инструменты", price=3000, description="Набор профессиональных инструментов")
+            ShopItem(name="Фирменная кепка", price=5000, description="Кепка с логотипом LosPollos"),
+            ShopItem(name="Футболка", price=10000, description="Стильная футболка для лучших работников"),
+            ShopItem(name="Сертификат на обед", price=15000, description="Бесплатное комбо в нашем ресторане"),
+            ShopItem(name="Инструменты", price=30000, description="Набор профессиональных инструментов")
         ]
         db.session.bulk_save_objects(items)
     db.session.commit()
@@ -143,7 +143,7 @@ def submit_report():
         location=location,
         reporter_id=session['user_id'],
         report_photo=filename,
-        reward_points=300
+        reward_points=5000
     )
     db.session.add(new_task)
     db.session.commit()
