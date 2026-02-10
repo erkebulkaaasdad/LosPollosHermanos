@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
     .location-fields { display: none; margin-top: 10px; }
+    .kz-only { display: none; }
   </style>
 </head>
 <body>
@@ -32,22 +33,32 @@
     
     <div id="registerFields" class="location-fields">
       <label>{{ _('country') }}</label>
-      <select id="country" onchange="updateRegions()">
+      <select id="country" onchange="toggleKzFields()">
         <option value="">-- Выберите страну --</option>
-        {% for country in locations.keys() %}
+        {% for country in countries %}
         <option value="{{ country }}">{{ country }}</option>
         {% endfor %}
       </select>
 
-      <label>{{ _('region') }}</label>
-      <select id="region" onchange="updateCities()">
-        <option value="">-- Сначала выберите страну --</option>
-      </select>
+      <div id="kzFields" class="kz-only">
+        <label>{{ _('region') }}</label>
+        <select id="region" onchange="updateCities()">
+          <option value="">-- Выберите область --</option>
+          {% for region in kz_locations.keys() %}
+          <option value="{{ region }}">{{ region }}</option>
+          {% endfor %}
+        </select>
 
-      <label>{{ _('city') }}</label>
-      <select id="city">
-        <option value="">-- Сначала выберите область --</option>
-      </select>
+        <label>{{ _('city') }}</label>
+        <select id="city">
+          <option value="">-- Сначала выберите область --</option>
+        </select>
+      </div>
+      
+      <div id="otherCityField" style="display:none;">
+        <label>{{ _('city') }}</label>
+        <input type="text" id="otherCity" placeholder="Введите ваш город">
+      </div>
     </div>
     
     <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -60,50 +71,38 @@
 </div>
 
 <script>
-  const locations = {{ locations|tojson }};
+  const kzLocations = {{ kz_locations|tojson }};
 
-  function updateRegions() {
+  function toggleKzFields() {
     const country = document.getElementById('country').value;
-    const regionSelect = document.getElementById('region');
-    const citySelect = document.getElementById('city');
+    const kzFields = document.getElementById('kzFields');
+    const otherCityField = document.getElementById('otherCityField');
     
-    regionSelect.innerHTML = '<option value="">-- Выберите область --</option>';
-    citySelect.innerHTML = '<option value="">-- Сначала выберите область --</option>';
-    
-    if (country && locations[country]) {
-      Object.keys(locations[country]).forEach(region => {
-        regionSelect.innerHTML += `<option value="${region}">${region}</option>`;
-      });
+    if (country === "Казахстан") {
+      kzFields.style.display = 'block';
+      otherCityField.style.display = 'none';
+    } else if (country !== "") {
+      kzFields.style.display = 'none';
+      otherCityField.style.display = 'block';
+    } else {
+      kzFields.style.display = 'none';
+      otherCityField.style.display = 'none';
     }
   }
 
   function updateCities() {
-    const country = document.getElementById('country').value;
     const region = document.getElementById('region').value;
     const citySelect = document.getElementById('city');
     
     citySelect.innerHTML = '<option value="">-- Выберите город --</option>';
     
-    if (country && region && locations[country][region]) {
-      locations[country][region].forEach(city => {
+    if (region && kzLocations[region]) {
+      kzLocations[region].forEach(city => {
         citySelect.innerHTML += `<option value="${city}">${city}</option>`;
       });
     }
   }
 
-  // Show location fields only when clicking Register
-  document.getElementById('email').addEventListener('focus', () => {
-    // Just a placeholder for potential logic
-  });
-
-  // Check if we should show registration fields
-  function showRegFields(show) {
-    document.getElementById('registerFields').style.display = show ? 'block' : 'none';
-  }
-
-  // To make it simpler, we show location fields if user starts filling them or we can toggle
-  // Let's modify handleAuth to show fields if they are hidden and user clicks register
-  
   async function handleAuth(type) {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
@@ -125,11 +124,16 @@
     const payload = { email, password };
     if (type === 'register') {
       payload.country = document.getElementById('country').value;
-      payload.region = document.getElementById('region').value;
-      payload.city = document.getElementById('city').value;
+      if (payload.country === "Казахстан") {
+        payload.region = document.getElementById('region').value;
+        payload.city = document.getElementById('city').value;
+      } else {
+        payload.region = "Other";
+        payload.city = document.getElementById('otherCity').value;
+      }
       
-      if (!payload.country || !payload.region || !payload.city) {
-        alert("Выберите местоположение");
+      if (!payload.country || !payload.city) {
+        alert("Заполните данные о местоположении");
         return;
       }
     }
