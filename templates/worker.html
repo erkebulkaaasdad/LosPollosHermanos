@@ -40,7 +40,7 @@
       {% for task in tasks %}
       <div class="job" id="task-{{ task.id }}">
         <strong>{{ task.title }}</strong><br>
-        {{ _('location') }}: {{ task.location }}<br>
+        📍 {{ task.city }}, {{ task.location }}<br>
         Выплата: {{ task.reward_points }} ₸<br><br>
         
         <div class="upload-area">

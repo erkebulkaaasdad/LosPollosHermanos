@@ -22,6 +22,17 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 db = SQLAlchemy(app)
 
+# Location Data
+LOCATIONS = {
+    "Казахстан": {
+        "Алматинская область": ["Алматы", "Талдыкорган", "Каскелен"],
+        "Астанинская область": ["Астана"],
+        "Акмолинская область": ["Кокшетау", "Степногорск"],
+        "Карагандинская область": ["Караганда", "Темиртау", "Балхаш"],
+        "Шымкент": ["Шымкент"]
+    }
+}
+
 # Translations
 TRANSLATIONS = {
     'ru': {
@@ -50,6 +61,9 @@ TRANSLATIONS = {
         'new_report': 'Новая заявка',
         'report_type': 'Тип проблемы',
         'location': 'Адрес / место',
+        'country': 'Страна',
+        'region': 'Область',
+        'city': 'Город',
         'photo': 'Фото проблемы',
         'submit': 'Отправить',
         'available_tasks': 'Доступные задания',
@@ -93,6 +107,9 @@ TRANSLATIONS = {
         'new_report': 'Жаңа өтінім',
         'report_type': 'Мәселе түрі',
         'location': 'Мекен-жайы / орны',
+        'country': 'Ел',
+        'region': 'Облыс',
+        'city': 'Қала',
         'photo': 'Мәселенің фотосы',
         'submit': 'Жіберу',
         'available_tasks': 'Қолжетімді тапсырмалар',
@@ -119,11 +136,17 @@ class User(db.Model):
     password = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(20), default='user') 
     points = db.Column(db.Integer, default=0)
+    country = db.Column(db.String(100))
+    region = db.Column(db.String(100))
+    city = db.Column(db.String(100))
 
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     location = db.Column(db.String(200), nullable=False)
+    country = db.Column(db.String(100))
+    region = db.Column(db.String(100))
+    city = db.Column(db.String(100))
     reward_points = db.Column(db.Integer, default=5000)
     status = db.Column(db.String(20), default='available') 
     reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
@@ -174,19 +197,30 @@ def welcome():
 def auth():
     if 'user_id' in session:
         return redirect(url_for('client'))
-    return render_template('index.html')
+    return render_template('index.html', locations=LOCATIONS)
 
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
+    country = data.get('country')
+    region = data.get('region')
+    city = data.get('city')
+    
     if not email or not password:
         return jsonify({'error': 'Missing data'}), 400
     if User.query.filter_by(email=email).first():
         return jsonify({'error': 'Email already exists'}), 400
+    
     hashed_password = generate_password_hash(password)
-    new_user = User(email=email, password=hashed_password)
+    new_user = User(
+        email=email, 
+        password=hashed_password,
+        country=country,
+        region=region,
+        city=city
+    )
     db.session.add(new_user)
     db.session.commit()
     return jsonify({'message': 'User registered successfully'}), 201
@@ -216,7 +250,7 @@ def client():
         session.clear()
         return redirect(url_for('auth'))
     my_reports = Task.query.filter_by(reporter_id=user.id).all()
-    return render_template('client.html', reports=my_reports, user=user)
+    return render_template('client.html', reports=my_reports, user=user, locations=LOCATIONS)
 
 @app.route('/submit_report', methods=['POST'])
 def submit_report():
@@ -224,16 +258,25 @@ def submit_report():
         return jsonify({'error': 'Unauthorized'}), 403
     title = request.form.get('type')
     location = request.form.get('location')
+    country = request.form.get('country')
+    region = request.form.get('region')
+    city = request.form.get('city')
     file = request.files.get('photo')
+    
     if not title or not location:
         return jsonify({'error': 'Title and location are required'}), 400
+    
     filename = None
     if file:
         filename = secure_filename(f"report_{session['user_id']}_{file.filename}")
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    
     new_task = Task(
         title=title,
         location=location,
+        country=country,
+        region=region,
+        city=city,
         reporter_id=session['user_id'],
         report_photo=filename,
         reward_points=5000
@@ -250,6 +293,8 @@ def worker():
     if not user:
         session.clear()
         return redirect(url_for('auth'))
+    
+    # Optional: Filter tasks by user's city
     tasks = Task.query.filter_by(status='available').all()
     return render_template('worker.html', user=user, tasks=tasks)
 

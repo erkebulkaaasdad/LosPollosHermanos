@@ -5,6 +5,9 @@
   <title>LosPollos — {{ _('login') }} / {{ _('register') }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .location-fields { display: none; margin-top: 10px; }
+  </style>
 </head>
 <body>
 
@@ -27,9 +30,29 @@
     <label>Пароль</label>
     <input type="password" id="password" placeholder="******">
     
-    <div style="display: flex; gap: 10px;">
-        <button onclick="handleAuth('login')">{{ _('login') }}</button>
-        <button onclick="handleAuth('register')" style="background: var(--success-color);">{{ _('register') }}</button>
+    <div id="registerFields" class="location-fields">
+      <label>{{ _('country') }}</label>
+      <select id="country" onchange="updateRegions()">
+        <option value="">-- Выберите страну --</option>
+        {% for country in locations.keys() %}
+        <option value="{{ country }}">{{ country }}</option>
+        {% endfor %}
+      </select>
+
+      <label>{{ _('region') }}</label>
+      <select id="region" onchange="updateCities()">
+        <option value="">-- Сначала выберите страну --</option>
+      </select>
+
+      <label>{{ _('city') }}</label>
+      <select id="city">
+        <option value="">-- Сначала выберите область --</option>
+      </select>
+    </div>
+    
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button id="loginBtn" onclick="handleAuth('login')">{{ _('login') }}</button>
+        <button id="regBtn" onclick="handleAuth('register')" style="background: var(--success-color);">{{ _('register') }}</button>
     </div>
     
     <div id="message" style="margin-top: 15px; text-align: center; font-weight: bold;"></div>
@@ -37,14 +60,78 @@
 </div>
 
 <script>
+  const locations = {{ locations|tojson }};
+
+  function updateRegions() {
+    const country = document.getElementById('country').value;
+    const regionSelect = document.getElementById('region');
+    const citySelect = document.getElementById('city');
+    
+    regionSelect.innerHTML = '<option value="">-- Выберите область --</option>';
+    citySelect.innerHTML = '<option value="">-- Сначала выберите область --</option>';
+    
+    if (country && locations[country]) {
+      Object.keys(locations[country]).forEach(region => {
+        regionSelect.innerHTML += `<option value="${region}">${region}</option>`;
+      });
+    }
+  }
+
+  function updateCities() {
+    const country = document.getElementById('country').value;
+    const region = document.getElementById('region').value;
+    const citySelect = document.getElementById('city');
+    
+    citySelect.innerHTML = '<option value="">-- Выберите город --</option>';
+    
+    if (country && region && locations[country][region]) {
+      locations[country][region].forEach(city => {
+        citySelect.innerHTML += `<option value="${city}">${city}</option>`;
+      });
+    }
+  }
+
+  // Show location fields only when clicking Register
+  document.getElementById('email').addEventListener('focus', () => {
+    // Just a placeholder for potential logic
+  });
+
+  // Check if we should show registration fields
+  function showRegFields(show) {
+    document.getElementById('registerFields').style.display = show ? 'block' : 'none';
+  }
+
+  // To make it simpler, we show location fields if user starts filling them or we can toggle
+  // Let's modify handleAuth to show fields if they are hidden and user clicks register
+  
   async function handleAuth(type) {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const messageDiv = document.getElementById('message');
+    const regFields = document.getElementById('registerFields');
+
+    if (type === 'register' && regFields.style.display === 'none') {
+      regFields.style.display = 'block';
+      messageDiv.innerText = "Пожалуйста, укажите ваше местоположение для регистрации";
+      messageDiv.style.color = "var(--primary-color)";
+      return;
+    }
     
     if (!email || !password) {
       alert("Заполните все поля");
       return;
+    }
+
+    const payload = { email, password };
+    if (type === 'register') {
+      payload.country = document.getElementById('country').value;
+      payload.region = document.getElementById('region').value;
+      payload.city = document.getElementById('city').value;
+      
+      if (!payload.country || !payload.region || !payload.city) {
+        alert("Выберите местоположение");
+        return;
+      }
     }
 
     const url = type === 'login' ? '/login' : '/register';
@@ -53,7 +140,7 @@
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify(payload)
       });
 
       const result = await response.json();
@@ -64,6 +151,7 @@
         } else {
           messageDiv.innerText = "Регистрация успешна! Теперь вы можете войти.";
           messageDiv.style.color = "var(--success-color)";
+          regFields.style.display = 'none';
         }
       } else {
         messageDiv.innerText = result.error || "Ошибка";

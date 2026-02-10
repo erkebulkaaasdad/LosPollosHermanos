@@ -44,6 +44,30 @@
       <option>Другое</option>
     </select>
 
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+      <div>
+        <label>{{ _('country') }}</label>
+        <select id="country" onchange="updateRegions()">
+          <option value="">-- {{ _('country') }} --</option>
+          {% for country in locations.keys() %}
+          <option value="{{ country }}" {{ 'selected' if user.country == country }}>{{ country }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>{{ _('region') }}</label>
+        <select id="region" onchange="updateCities()">
+          <option value="">-- {{ _('region') }} --</option>
+        </select>
+      </div>
+      <div>
+        <label>{{ _('city') }}</label>
+        <select id="city">
+          <option value="">-- {{ _('city') }} --</option>
+        </select>
+      </div>
+    </div>
+
     <label>{{ _('location') }}</label>
     <textarea id="location" placeholder="Например: ул. Абая, дом 25"></textarea>
 
@@ -59,7 +83,7 @@
       {% for report in reports %}
       <div class="report-item">
         <strong>{{ report.title }}</strong><br>
-        📍 {{ report.location }}<br>
+        📍 {{ report.city }}, {{ report.location }}<br>
         Статус: <span class="status-{{ report.status }}">{{ _('status_in_progress') if report.status == 'available' else _('status_fixed') }}</span>
       </div>
       {% else %}
@@ -71,19 +95,64 @@
 </div>
 
 <script>
+  const locations = {{ locations|tojson }};
+
+  function updateRegions() {
+    const country = document.getElementById('country').value;
+    const regionSelect = document.getElementById('region');
+    const citySelect = document.getElementById('city');
+    
+    regionSelect.innerHTML = '<option value="">-- {{ _("region") }} --</option>';
+    citySelect.innerHTML = '<option value="">-- {{ _("city") }} --</option>';
+    
+    if (country && locations[country]) {
+      Object.keys(locations[country]).forEach(region => {
+        const selected = region === "{{ user.region }}" ? 'selected' : '';
+        regionSelect.innerHTML += `<option value="${region}" ${selected}>${region}</option>`;
+      });
+      if ("{{ user.region }}") updateCities();
+    }
+  }
+
+  function updateCities() {
+    const country = document.getElementById('country').value;
+    const region = document.getElementById('region').value;
+    const citySelect = document.getElementById('city');
+    
+    citySelect.innerHTML = '<option value="">-- {{ _("city") }} --</option>';
+    
+    if (country && region && locations[country][region]) {
+      locations[country][region].forEach(city => {
+        const selected = city === "{{ user.city }}" ? 'selected' : '';
+        citySelect.innerHTML += `<option value="${city}" ${selected}>${city}</option>`;
+      });
+    }
+  }
+
+  // Initialize dropdowns based on user data
+  window.onload = () => {
+    if (document.getElementById('country').value) updateRegions();
+  };
+
   async function submitReport() {
     const type = document.getElementById("type").value;
     const location = document.getElementById("location").value;
+    const country = document.getElementById("country").value;
+    const region = document.getElementById("region").value;
+    const city = document.getElementById("city").value;
     const photoInput = document.getElementById("photo");
     
-    if (!location) {
-      alert("Введите адрес");
+    if (!location || !city) {
+      alert("Заполните адрес и выберите город");
       return;
     }
 
     const formData = new FormData();
     formData.append('type', type);
     formData.append('location', location);
+    formData.append('country', country);
+    formData.append('region', region);
+    formData.append('city', city);
     if (photoInput.files[0]) {
         formData.append('photo', photoInput.files[0]);
     }
