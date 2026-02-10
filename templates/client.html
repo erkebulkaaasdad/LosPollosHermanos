@@ -47,17 +47,17 @@
 
     <label>{{ _('report_type') }}</label>
     <select id="type">
-      <option>Яма на дороге</option>
-      <option>Сломанный светофор</option>
-      <option>Открытый люк</option>
-      <option>Мусор</option>
-      <option>Другое</option>
+      <option value="type_pothole">{{ _('type_pothole') }}</option>
+      <option value="type_traffic_light">{{ _('type_traffic_light') }}</option>
+      <option value="type_hatch">{{ _('type_hatch') }}</option>
+      <option value="type_trash">{{ _('type_trash') }}</option>
+      <option value="type_other">{{ _('type_other') }}</option>
     </select>
 
     <div style="margin-bottom: 15px;">
       <label>{{ _('country') }}</label>
-      <span class="search-hint">Введите название для поиска</span>
-      <input list="countriesList" id="country" placeholder="Выберите или введите страну" value="{{ user.country }}" onchange="toggleKzFields()" oninput="toggleKzFields()">
+      <span class="search-hint">{{ _('search_hint') }}</span>
+      <input list="countriesList" id="country" placeholder="{{ _('select_country') }}" value="{{ user.country }}" onchange="toggleKzFields()" oninput="toggleKzFields()">
       <datalist id="countriesList">
         {% for country in countries %}
         <option value="{{ country }}">
@@ -85,11 +85,11 @@
 
     <div id="otherCityField" style="display:none; margin-bottom: 15px;">
       <label>{{ _('city') }}</label>
-      <input type="text" id="otherCity" placeholder="Введите ваш город" value="{{ user.city if user.country != 'Казахстан' else '' }}">
+      <input type="text" id="otherCity" placeholder="{{ _('enter_city') }}" value="{{ user.city if user.country != 'Казахстан' else '' }}">
     </div>
 
     <label>{{ _('location') }}</label>
-    <textarea id="location" placeholder="Например: ул. Абая, дом 25"></textarea>
+    <textarea id="location" placeholder="{{ _('address_placeholder') }}"></textarea>
 
     <label>{{ _('photo') }}</label>
     <input type="file" id="photo" accept="image/*">
@@ -102,9 +102,9 @@
     <div id="reportList">
       {% for report in reports %}
       <div class="report-item">
-        <strong>{{ report.title }}</strong><br>
+        <strong>{{ _(report.title) }}</strong><br>
         📍 {{ report.country }}, {{ report.city }}, {{ report.location }}<br>
-        Статус: <span class="status-{{ report.status }}">{{ _('status_in_progress') if report.status == 'available' else _('status_fixed') }}</span>
+        {{ _('status') if _('status') != 'status' else 'Статус' }}: <span class="status-{{ report.status }}">{{ _('status_in_progress') if report.status == 'available' else _('status_fixed') }}</span>
       </div>
       {% else %}
       <p>{{ _('no_reports') }}</p>
@@ -162,7 +162,7 @@
     const photoInput = document.getElementById("photo");
     
     if (!location || !city || !country) {
-      alert("Пожалуйста, заполните все данные о местоположении");
+      alert("{{ _('fill_all') }}");
       return;
     }
 
@@ -183,14 +183,14 @@
         });
 
         if (response.ok) {
-            alert("Заявка успешно отправлена!");
+            alert("{{ 'Заявка успешно отправлена!' if current_lang == 'ru' else 'Өтінім сәтті жіберілді!' }}");
             window.location.reload(); 
         } else {
             const result = await response.json();
-            alert(result.error || "Ошибка");
+            alert(result.error || "{{ _('error') }}");
         }
     } catch (e) {
-        alert("Ошибка соединения с сервером");
+        alert("Error connecting to server");
     }
   }
 </script>

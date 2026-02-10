@@ -109,7 +109,32 @@ TRANSLATIONS = {
         'shop_desc': 'Тратьте баллы на эксклюзивные товары',
         'available_items': 'Доступные товары',
         'buy': 'Купить',
-        'back_home': 'На главную'
+        'back_home': 'На главную',
+        'password': 'Пароль',
+        'email_label': 'Email',
+        'location_data': 'Данные о местоположении',
+        'select_country': 'Выберите или введите страну',
+        'select_region': 'Выберите область',
+        'select_city': 'Выберите город',
+        'enter_city': 'Введите ваш город',
+        'fill_all': 'Заполните все данные',
+        'success_reg': 'Регистрация успешна! Теперь вы можете войти.',
+        'error': 'Ошибка',
+        'search_hint': 'Введите название для поиска',
+        'item_cap': 'Фирменная кепка',
+        'item_cap_desc': 'Кепка с логотипом LosPollos',
+        'item_shirt': 'Футболка',
+        'item_shirt_desc': 'Стильная футболка для лучших работников',
+        'item_lunch': 'Сертификат на обед',
+        'item_lunch_desc': 'Бесплатное комбо в нашем ресторане',
+        'item_tools': 'Инструменты',
+        'item_tools_desc': 'Набор профессиональных инструментов',
+        'type_pothole': 'Яма на дороге',
+        'type_traffic_light': 'Сломанный светофор',
+        'type_hatch': 'Открытый люк',
+        'type_trash': 'Мусор',
+        'type_other': 'Другое',
+        'address_placeholder': 'Например: ул. Абая, дом 25'
     },
     'kk': {
         'welcome_title': 'LosPollos-қа қош келдіңіз',
@@ -155,7 +180,32 @@ TRANSLATIONS = {
         'shop_desc': 'Теңгелерді эксклюзивті тауарларға жұмсаңыз',
         'available_items': 'Қолжетімді тауарлар',
         'buy': 'Сатып алу',
-        'back_home': 'Басты бетке'
+        'back_home': 'Басты бетке',
+        'password': 'Құпия сөз',
+        'email_label': 'Email',
+        'location_data': 'Орналасқан жері туралы деректер',
+        'select_country': 'Елді таңдаңыз немесе енгізіңіз',
+        'select_region': 'Облысты таңдаңыз',
+        'select_city': 'Қаланы таңдаңыз',
+        'enter_city': 'Қалаңызды енгізіңіз',
+        'fill_all': 'Барлық деректерді толтырыңыз',
+        'success_reg': 'Тіркелу сәтті аяқталды! Енді кіре аласыз.',
+        'error': 'Қате',
+        'search_hint': 'Іздеу үшін атауды енгізіңіз',
+        'item_cap': 'Фирмалық кепка',
+        'item_cap_desc': 'LosPollos логотипі бар кепка',
+        'item_shirt': 'Футболка',
+        'item_shirt_desc': 'Үздік жұмысшыларға арналған стильді футболка',
+        'item_lunch': 'Түскі асқа сертификат',
+        'item_lunch_desc': 'Біздің мейрамханада тегін комбо',
+        'item_tools': 'Құралдар',
+        'item_tools_desc': 'Кәсіби құралдар жиынтығы',
+        'type_pothole': 'Жолдағы шұңқыр',
+        'type_traffic_light': 'Бұзылған бағдаршам',
+        'type_hatch': 'Ашық люк',
+        'type_trash': 'Қоқыс',
+        'type_other': 'Басқа',
+        'address_placeholder': 'Мысалы: Абай к-сі, 25 үй'
     }
 }
 
@@ -186,9 +236,9 @@ class Task(db.Model):
 
 class ShopItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+    name_key = db.Column(db.String(100), nullable=False)
     price = db.Column(db.Integer, nullable=False)
-    description = db.Column(db.String(200))
+    desc_key = db.Column(db.String(100))
 
 # Context Processor for translations
 @app.context_processor
@@ -209,10 +259,10 @@ with app.app_context():
     db.create_all()
     if not ShopItem.query.first():
         items = [
-            ShopItem(name="Фирменная кепка", price=5000, description="Кепка с логотипом LosPollos"),
-            ShopItem(name="Футболка", price=10000, description="Стильная футболка для лучших работников"),
-            ShopItem(name="Сертификат на обед", price=15000, description="Бесплатное комбо в нашем ресторане"),
-            ShopItem(name="Инструменты", price=30000, description="Набор профессиональных инструментов")
+            ShopItem(name_key="item_cap", price=5000, desc_key="item_cap_desc"),
+            ShopItem(name_key="item_shirt", price=10000, desc_key="item_shirt_desc"),
+            ShopItem(name_key="item_lunch", price=15000, desc_key="item_lunch_desc"),
+            ShopItem(name_key="item_tools", price=30000, desc_key="item_tools_desc")
         ]
         db.session.bulk_save_objects(items)
     db.session.commit()
@@ -231,40 +281,29 @@ def auth():
 
 @app.route('/register', methods=['POST'])
 def register():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    country = data.get('country')
-    region = data.get('region')
-    city = data.get('city')
+    data = request.json
+    if User.query.filter_by(email=data.get('email')).first():
+        return jsonify({'error': 'Email уже занят' if session.get('lang')=='ru' else 'Email бос емес'}), 400
     
-    if not email or not password:
-        return jsonify({'error': 'Missing data'}), 400
-    if User.query.filter_by(email=email).first():
-        return jsonify({'error': 'Email already exists'}), 400
-    
-    hashed_password = generate_password_hash(password)
     new_user = User(
-        email=email, 
-        password=hashed_password,
-        country=country,
-        region=region,
-        city=city
+        email=data.get('email'),
+        password=generate_password_hash(data.get('password')),
+        country=data.get('country'),
+        region=data.get('region'),
+        city=data.get('city')
     )
     db.session.add(new_user)
     db.session.commit()
-    return jsonify({'message': 'User registered successfully'}), 201
+    return jsonify({'message': 'Success'})
 
 @app.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    user = User.query.filter_by(email=email).first()
-    if user and check_password_hash(user.password, password):
+    data = request.json
+    user = User.query.filter_by(email=data.get('email')).first()
+    if user and check_password_hash(user.password, data.get('password')):
         session['user_id'] = user.id
-        return jsonify({'message': 'Login successful'}), 200
-    return jsonify({'error': 'Invalid credentials'}), 401
+        return jsonify({'message': 'Success'})
+    return jsonify({'error': 'Неверный email или пароль' if session.get('lang')=='ru' else 'Қате email немесе құпия сөз'}), 401
 
 @app.route('/logout')
 def logout():
@@ -273,33 +312,29 @@ def logout():
 
 @app.route('/client')
 def client():
-    if 'user_id' not in session:
-        return redirect(url_for('auth'))
+    if 'user_id' not in session: return redirect(url_for('auth'))
     user = User.query.get(session['user_id'])
     if not user:
         session.clear()
         return redirect(url_for('auth'))
-    my_reports = Task.query.filter_by(reporter_id=user.id).all()
-    return render_template('client.html', reports=my_reports, user=user, countries=ALL_COUNTRIES, kz_locations=KZ_LOCATIONS)
+    reports = Task.query.filter_by(reporter_id=user.id).all()
+    return render_template('client.html', user=user, reports=reports, countries=ALL_COUNTRIES, kz_locations=KZ_LOCATIONS)
 
 @app.route('/submit_report', methods=['POST'])
 def submit_report():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 403
+    if 'user_id' not in session: return jsonify({'error': 'Unauthorized'}), 401
+    
     title = request.form.get('type')
     location = request.form.get('location')
     country = request.form.get('country')
     region = request.form.get('region')
     city = request.form.get('city')
-    file = request.files.get('photo')
-    
-    if not title or not location:
-        return jsonify({'error': 'Title and location are required'}), 400
+    photo = request.files.get('photo')
     
     filename = None
-    if file:
-        filename = secure_filename(f"report_{session['user_id']}_{file.filename}")
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    if photo:
+        filename = secure_filename(photo.filename)
+        photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
     
     new_task = Task(
         title=title,
@@ -308,52 +343,45 @@ def submit_report():
         region=region,
         city=city,
         reporter_id=session['user_id'],
-        report_photo=filename,
-        reward_points=5000
+        report_photo=filename
     )
     db.session.add(new_task)
     db.session.commit()
-    return jsonify({'message': 'Report submitted successfully'}), 201
+    return jsonify({'message': 'Success'})
 
 @app.route('/worker')
 def worker():
-    if 'user_id' not in session:
-        return redirect(url_for('auth'))
+    if 'user_id' not in session: return redirect(url_for('auth'))
     user = User.query.get(session['user_id'])
     if not user:
         session.clear()
         return redirect(url_for('auth'))
-    
     tasks = Task.query.filter_by(status='available').all()
     return render_template('worker.html', user=user, tasks=tasks)
 
-@app.route('/complete_task', methods=['POST'])
-def complete_task():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 403
-    task_id = request.form.get('task_id')
-    file = request.files.get('photo')
-    if not file:
-        return jsonify({'error': 'Photo proof is required'}), 400
+@app.route('/complete_task/<int:task_id>', methods=['POST'])
+def complete_task(task_id):
+    if 'user_id' not in session: return jsonify({'error': 'Unauthorized'}), 401
     task = Task.query.get(task_id)
-    if task and task.status == 'available':
-        filename = secure_filename(f"proof_{task_id}_{file.filename}")
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        user = User.query.get(session['user_id'])
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-        task.status = 'completed'
-        task.worker_id = user.id
-        task.proof_photo = filename
-        user.points += task.reward_points
-        db.session.commit()
-        return jsonify({'message': 'Task completed with proof', 'points': user.points}), 200
-    return jsonify({'error': 'Task not found or already completed'}), 400
+    user = User.query.get(session['user_id'])
+    
+    proof_photo = request.files.get('proof_photo')
+    if not proof_photo:
+        return jsonify({'error': 'Нужно фото подтверждение' if session.get('lang')=='ru' else 'Фото дәлелдеме қажет'}), 400
+    
+    filename = secure_filename(proof_photo.filename)
+    proof_photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    
+    task.status = 'fixed'
+    task.worker_id = user.id
+    task.proof_photo = filename
+    user.points += task.reward_points
+    db.session.commit()
+    return jsonify({'message': 'Success'})
 
 @app.route('/shop')
 def shop():
-    if 'user_id' not in session:
-        return redirect(url_for('auth'))
+    if 'user_id' not in session: return redirect(url_for('auth'))
     user = User.query.get(session['user_id'])
     if not user:
         session.clear()
@@ -361,21 +389,17 @@ def shop():
     items = ShopItem.query.all()
     return render_template('shop.html', user=user, items=items)
 
-@app.route('/buy_item', methods=['POST'])
-def buy_item():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 403
-    data = request.get_json()
-    item_id = data.get('item_id')
-    item = ShopItem.query.get(item_id)
+@app.route('/buy_item/<int:item_id>', methods=['POST'])
+def buy_item(item_id):
+    if 'user_id' not in session: return jsonify({'error': 'Unauthorized'}), 401
     user = User.query.get(session['user_id'])
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-    if item and user.points >= item.price:
+    item = ShopItem.query.get(item_id)
+    
+    if user.points >= item.price:
         user.points -= item.price
         db.session.commit()
-        return jsonify({'message': f'Purchased {item.name}', 'points': user.points}), 200
-    return jsonify({'error': 'Not enough points or item not found'}), 400
+        return jsonify({'message': 'Success'})
+    return jsonify({'error': 'Недостаточно средств' if session.get('lang')=='ru' else 'Қаражат жеткіліксіз'}), 400
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)

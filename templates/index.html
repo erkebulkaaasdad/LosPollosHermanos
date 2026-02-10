@@ -68,19 +68,19 @@
     </div>
     
     <div id="basicFields">
-        <label>Email</label>
+        <label>{{ _('email_label') }}</label>
         <input type="email" id="email" placeholder="example@mail.com">
         
-        <label>Пароль</label>
+        <label>{{ _('password') }}</label>
         <input type="password" id="password" placeholder="******">
     </div>
     
     <div id="registerFields" class="location-fields">
-      <h4 style="margin-top:0; color: var(--primary-color);">Данные о местоположении</h4>
+      <h4 style="margin-top:0; color: var(--primary-color);">{{ _('location_data') }}</h4>
       
       <label>{{ _('country') }}</label>
-      <span class="search-hint">Введите название для поиска</span>
-      <input list="countriesList" id="country" placeholder="Выберите или введите страну" onchange="toggleKzFields()" oninput="toggleKzFields()">
+      <span class="search-hint">{{ _('search_hint') }}</span>
+      <input list="countriesList" id="country" placeholder="{{ _('select_country') }}" onchange="toggleKzFields()" oninput="toggleKzFields()">
       <datalist id="countriesList">
         {% for country in countries %}
         <option value="{{ country }}">
@@ -90,7 +90,7 @@
       <div id="kzFields" class="kz-only">
         <label>{{ _('region') }}</label>
         <select id="region" onchange="updateCities()">
-          <option value="">-- Выберите область --</option>
+          <option value="">-- {{ _('select_region') }} --</option>
           {% for region in kz_locations.keys() %}
           <option value="{{ region }}">{{ region }}</option>
           {% endfor %}
@@ -98,13 +98,13 @@
 
         <label>{{ _('city') }}</label>
         <select id="city">
-          <option value="">-- Сначала выберите область --</option>
+          <option value="">-- {{ _('select_city') }} --</option>
         </select>
       </div>
       
       <div id="otherCityField" style="display:none;">
         <label>{{ _('city') }}</label>
-        <input type="text" id="otherCity" placeholder="Введите ваш город">
+        <input type="text" id="otherCity" placeholder="{{ _('enter_city') }}">
       </div>
     </div>
     
@@ -166,7 +166,7 @@
     const region = document.getElementById('region').value;
     const citySelect = document.getElementById('city');
     
-    citySelect.innerHTML = '<option value="">-- Выберите город --</option>';
+    citySelect.innerHTML = '<option value="">-- {{ _("select_city") }} --</option>';
     
     if (region && kzLocations[region]) {
       kzLocations[region].forEach(city => {
@@ -181,7 +181,7 @@
     const messageDiv = document.getElementById('message');
     
     if (!email || !password) {
-      alert("Заполните Email и Пароль");
+      alert("{{ _('fill_all') }}");
       return;
     }
 
@@ -198,7 +198,7 @@
       }
       
       if (!payload.country || !payload.city) {
-        alert("Пожалуйста, заполните данные о местоположении (Страна и Город)");
+        alert("{{ _('fill_all') }}");
         return;
       }
     }
@@ -218,16 +218,16 @@
         if (currentMode === 'login') {
           window.location.href = '/client';
         } else {
-          messageDiv.innerText = "Регистрация успешна! Теперь вы можете войти.";
+          messageDiv.innerText = "{{ _('success_reg') }}";
           messageDiv.style.color = "var(--success-color)";
           switchTab('login');
         }
       } else {
-        messageDiv.innerText = result.error || "Ошибка";
+        messageDiv.innerText = result.error || "{{ _('error') }}";
         messageDiv.style.color = "var(--danger-color)";
       }
     } catch (e) {
-      alert("Ошибка соединения с сервером");
+      alert("Error connecting to server");
     }
   }
 </script>

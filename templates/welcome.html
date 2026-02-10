@@ -2,7 +2,7 @@
 <html lang="{{ current_lang }}">
 <head>
   <meta charset="UTF-8">
-  <title>{{ _('welcome_title') }}</title>
+  <title>LosPollos — {{ _('welcome_title') }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
@@ -14,6 +14,29 @@
     .feature-card h3 { color: var(--primary-color); margin-bottom: 1rem; }
     .cta-button { display: inline-block; background: var(--primary-color); color: white; padding: 15px 40px; border-radius: 30px; text-decoration: none; font-weight: bold; font-size: 1.1rem; transition: all 0.3s; }
     .cta-button:hover { background: var(--primary-dark); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(74, 144, 226, 0.2); }
+    
+    .slideshow-container {
+      max-width: 800px;
+      position: relative;
+      margin: 20px auto;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .mySlides { display: none; }
+    .mySlides img { width: 100%; height: 400px; object-fit: cover; }
+    .fade { animation-name: fade; animation-duration: 1.5s; }
+    @keyframes fade { from {opacity: .4} to {opacity: 1} }
+    .slideshow-text {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      padding: 10px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -35,15 +58,15 @@
     <!-- Slideshow Section -->
     <div class="slideshow-container">
       <div class="mySlides fade">
-        <img src="{{ url_for('static', filename='images/trash1.jpg') }}">
+        <img src="{{ url_for('static', filename='images/trash.jpg') }}">
         <div class="slideshow-text">{{ _('trash_on_streets') }}</div>
       </div>
       <div class="mySlides fade">
-        <img src="{{ url_for('static', filename='images/pothole1.jpg') }}">
+        <img src="{{ url_for('static', filename='images/pothole.jpg') }}">
         <div class="slideshow-text">{{ _('potholes_on_roads') }}</div>
       </div>
       <div class="mySlides fade">
-        <img src="{{ url_for('static', filename='images/trash2.jpg') }}">
+        <img src="{{ url_for('static', filename='images/dump.jpg') }}">
         <div class="slideshow-text">{{ _('illegal_dumps') }}</div>
       </div>
     </div>

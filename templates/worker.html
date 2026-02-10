@@ -13,6 +13,7 @@
     .role-switch { background: white; color: var(--primary-color); padding: 5px 15px; border-radius: 4px; }
     .logout-btn { background: rgba(0, 0, 0, 0.1); padding: 5px 15px; border-radius: 4px; }
     .upload-area { margin-top: 10px; border: 1px dashed #ccc; padding: 10px; border-radius: 4px; }
+    .task-photo { width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -23,7 +24,7 @@
     <a href="/set_lang/kk" class="lang-btn {{ 'active' if current_lang == 'kk' else '' }}">KK</a>
   </div>
   <h1>{{ _('for_workers') }}</h1>
-  <p>{{ _('available_tasks') }}</p>
+  <p>{{ _('tagline') }}</p>
   <div class="nav-links">
     <a href="/client" class="role-switch">{{ _('switch_to_citizen') }}</a>
     <a href="/shop">{{ _('shop') }}</a>
@@ -39,13 +40,16 @@
     <div id="taskList">
       {% for task in tasks %}
       <div class="job" id="task-{{ task.id }}">
-        <strong>{{ task.title }}</strong><br>
-        📍 {{ task.city }}, {{ task.location }}<br>
-        Выплата: {{ task.reward_points }} ₸<br><br>
+        {% if task.report_photo %}
+        <img src="{{ url_for('static', filename='uploads/' + task.report_photo) }}" class="task-photo">
+        {% endif %}
+        <strong>{{ _(task.title) }}</strong><br>
+        📍 {{ task.country }}, {{ task.city }}, {{ task.location }}<br>
+        {{ 'Выплата' if current_lang == 'ru' else 'Төлем' }}: {{ task.reward_points }} ₸<br><br>
         
         <div class="upload-area">
           <label>{{ _('proof_photo') }}</label><br>
-          <input type="file" id="photo-{{ task.id }}" accept="image/*">
+          <input type="file" id="photo-{{ task.id }}" accept="image/*" style="margin-bottom: 10px;">
           <button onclick="completeTask({{ task.id }})">{{ _('complete_task') }}</button>
         </div>
       </div>
@@ -65,36 +69,30 @@
   async function completeTask(taskId) {
     const fileInput = document.getElementById('photo-' + taskId);
     if (!fileInput.files[0]) {
-        alert("Пожалуйста, выберите фото!");
+        alert("{{ 'Пожалуйста, выберите фото!' if current_lang == 'ru' else 'Фото таңдаңыз!' }}");
         return;
     }
 
-    if (!confirm("Вы подтверждаете выполнение?")) return;
+    if (!confirm("{{ 'Вы подтверждаете выполнение?' if current_lang == 'ru' else 'Орындауды растайсыз ба?' }}")) return;
 
     const formData = new FormData();
-    formData.append('task_id', taskId);
-    formData.append('photo', fileInput.files[0]);
+    formData.append('proof_photo', fileInput.files[0]);
 
     try {
-        const response = await fetch('/complete_task', {
+        const response = await fetch('/complete_task/' + taskId, {
             method: 'POST',
             body: formData
         });
 
-        const result = await response.json();
-
         if (response.ok) {
-            alert("Задание выполнено!");
-            document.getElementById('userPoints').innerText = result.points;
-            document.getElementById('task-' + taskId).remove();
-            if (document.querySelectorAll('.job').length === 0) {
-                document.getElementById('taskList').innerHTML = '<p>{{ _("no_tasks") }}</p>';
-            }
+            alert("{{ 'Задание выполнено!' if current_lang == 'ru' else 'Тапсырма орындалды!' }}");
+            window.location.reload();
         } else {
-            alert(result.error || "Ошибка");
+            const result = await response.json();
+            alert(result.error || "{{ _('error') }}");
         }
     } catch (e) {
-        alert("Ошибка соединения");
+        alert("Error connecting to server");
     }
   }
 </script>
