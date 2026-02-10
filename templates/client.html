@@ -13,6 +13,15 @@
     .logout-btn { background: rgba(0, 0, 0, 0.1); padding: 5px 15px; border-radius: 4px; }
     .points-display { background: #fff9db; color: #856404; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
     .kz-only { display: none; }
+    .search-hint { font-size: 12px; color: #666; margin-bottom: 5px; display: block; }
+    input[list], select, textarea {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-sizing: border-box;
+    }
   </style>
 </head>
 <body>
@@ -47,12 +56,13 @@
 
     <div style="margin-bottom: 15px;">
       <label>{{ _('country') }}</label>
-      <select id="country" onchange="toggleKzFields()">
-        <option value="">-- {{ _('country') }} --</option>
+      <span class="search-hint">Введите название для поиска</span>
+      <input list="countriesList" id="country" placeholder="Выберите или введите страну" value="{{ user.country }}" onchange="toggleKzFields()" oninput="toggleKzFields()">
+      <datalist id="countriesList">
         {% for country in countries %}
-        <option value="{{ country }}" {{ 'selected' if user.country == country }}>{{ country }}</option>
+        <option value="{{ country }}">
         {% endfor %}
-      </select>
+      </datalist>
     </div>
 
     <div id="kzFields" class="kz-only" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
