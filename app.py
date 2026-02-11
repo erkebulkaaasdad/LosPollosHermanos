@@ -80,6 +80,8 @@ TRANSLATIONS = {
         'trash_on_streets': 'Горы мусора на улицах',
         'potholes_on_roads': 'Опасные ямы на дорогах',
         'illegal_dumps': 'Несанкционированные свалки',
+        'state_funding_title': 'Государственная поддержка',
+        'state_funding_desc': 'Проект финансируется государством Казахстан. Все выплаты рабочим производятся из государственного бюджета для поддержания чистоты и порядка в наших городах.',
         'login': 'Войти',
         'register': 'Регистрация',
         'logout': 'Выйти',
@@ -151,6 +153,8 @@ TRANSLATIONS = {
         'trash_on_streets': 'Көшедегі қоқыс үйінділері',
         'potholes_on_roads': 'Жолдағы қауіпті шұңқырлар',
         'illegal_dumps': 'Рұқсат етілмеген қоқыс орындары',
+        'state_funding_title': 'Мемлекеттік қолдау',
+        'state_funding_desc': 'Жобаны Қазақстан мемлекеті қаржыландырады. Жұмысшыларға барлық төлемдер қалаларымыздағы тазалық пен тәртіпті сақтау үшін мемлекеттік бюджеттен жүзеге асырылады.',
         'login': 'Кіру',
         'register': 'Тіркелу',
         'logout': 'Шығу',
@@ -214,63 +218,49 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(20), default='user') 
     points = db.Column(db.Integer, default=0)
     country = db.Column(db.String(100))
     region = db.Column(db.String(100))
     city = db.Column(db.String(100))
 
-class Task(db.Model):
+class Report(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     location = db.Column(db.String(200), nullable=False)
     country = db.Column(db.String(100))
     region = db.Column(db.String(100))
     city = db.Column(db.String(100))
+    status = db.Column(db.String(20), default='in_progress')
     reward_points = db.Column(db.Integer, default=5000)
-    status = db.Column(db.String(20), default='available') 
-    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    worker_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    report_photo = db.Column(db.String(200), nullable=True)
-    proof_photo = db.Column(db.String(200), nullable=True)
+    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    report_photo = db.Column(db.String(200))
+    proof_photo = db.Column(db.String(200))
 
-class ShopItem(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name_key = db.Column(db.String(100), nullable=False)
-    price = db.Column(db.Integer, nullable=False)
-    desc_key = db.Column(db.String(100))
+with app.app_context():
+    db.create_all()
 
-# Context Processor for translations
+def _(key):
+    lang = session.get('lang', 'ru')
+    return TRANSLATIONS.get(lang, TRANSLATIONS['ru']).get(key, key)
+
 @app.context_processor
 def inject_translate():
-    lang = session.get('lang', 'ru')
-    def translate(key):
-        return TRANSLATIONS.get(lang, TRANSLATIONS['ru']).get(key, key)
-    return dict(_=translate, current_lang=lang)
+    return dict(_=_, current_lang=session.get('lang', 'ru'))
 
 @app.route('/set_lang/<lang>')
 def set_lang(lang):
     if lang in ['ru', 'kk']:
         session['lang'] = lang
-    return redirect(request.referrer or url_for('welcome'))
-
-# Initialize database and seed data
-with app.app_context():
-    db.create_all()
-    if not ShopItem.query.first():
-        items = [
-            ShopItem(name_key="item_cap", price=5000, desc_key="item_cap_desc"),
-            ShopItem(name_key="item_shirt", price=10000, desc_key="item_shirt_desc"),
-            ShopItem(name_key="item_lunch", price=15000, desc_key="item_lunch_desc"),
-            ShopItem(name_key="item_tools", price=30000, desc_key="item_tools_desc")
-        ]
-        db.session.bulk_save_objects(items)
-    db.session.commit()
+    return redirect(request.referrer or url_for('index'))
 
 @app.route('/')
-def welcome():
+def index():
     if 'user_id' in session:
-        return redirect(url_for('client'))
+        user = User.query.get(session['user_id'])
+        if user:
+            return redirect(url_for('client'))
+        else:
+            session.clear()
     return render_template('welcome.html')
 
 @app.route('/auth')
@@ -282,124 +272,159 @@ def auth():
 @app.route('/register', methods=['POST'])
 def register():
     data = request.json
-    if User.query.filter_by(email=data.get('email')).first():
-        return jsonify({'error': 'Email уже занят' if session.get('lang')=='ru' else 'Email бос емес'}), 400
+    email = data.get('email')
+    password = data.get('password')
+    country = data.get('country')
+    region = data.get('region')
+    city = data.get('city')
     
-    new_user = User(
-        email=data.get('email'),
-        password=generate_password_hash(data.get('password')),
-        country=data.get('country'),
-        region=data.get('region'),
-        city=data.get('city')
-    )
+    if not email or not password or not country or not city:
+        return jsonify({'error': _('fill_all')}), 400
+        
+    if User.query.filter_by(email=email).first():
+        return jsonify({'error': 'Email already exists'}), 400
+        
+    hashed_password = generate_password_hash(password)
+    new_user = User(email=email, password=hashed_password, country=country, region=region, city=city)
     db.session.add(new_user)
     db.session.commit()
-    return jsonify({'message': 'Success'})
+    
+    return jsonify({'message': _('success_reg')})
 
 @app.route('/login', methods=['POST'])
 def login():
     data = request.json
-    user = User.query.filter_by(email=data.get('email')).first()
-    if user and check_password_hash(user.password, data.get('password')):
+    email = data.get('email')
+    password = data.get('password')
+    
+    user = User.query.filter_by(email=email).first()
+    if user and check_password_hash(user.password, password):
         session['user_id'] = user.id
         return jsonify({'message': 'Success'})
-    return jsonify({'error': 'Неверный email или пароль' if session.get('lang')=='ru' else 'Қате email немесе құпия сөз'}), 401
+    
+    return jsonify({'error': 'Invalid email or password'}), 401
 
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('welcome'))
+    return redirect(url_for('index'))
 
 @app.route('/client')
 def client():
-    if 'user_id' not in session: return redirect(url_for('auth'))
+    if 'user_id' not in session:
+        return redirect(url_for('auth'))
     user = User.query.get(session['user_id'])
     if not user:
         session.clear()
         return redirect(url_for('auth'))
-    reports = Task.query.filter_by(reporter_id=user.id).all()
+    reports = Report.query.filter_by(reporter_id=user.id).all()
     return render_template('client.html', user=user, reports=reports, countries=ALL_COUNTRIES, kz_locations=KZ_LOCATIONS)
+
+@app.route('/worker')
+def worker():
+    if 'user_id' not in session:
+        return redirect(url_for('auth'))
+    user = User.query.get(session['user_id'])
+    if not user:
+        session.clear()
+        return redirect(url_for('auth'))
+    tasks = Report.query.filter_by(status='in_progress').all()
+    return render_template('worker.html', user=user, tasks=tasks)
 
 @app.route('/submit_report', methods=['POST'])
 def submit_report():
-    if 'user_id' not in session: return jsonify({'error': 'Unauthorized'}), 401
-    
-    title = request.form.get('type')
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+        
+    title = request.form.get('title')
     location = request.form.get('location')
     country = request.form.get('country')
     region = request.form.get('region')
     city = request.form.get('city')
     photo = request.files.get('photo')
     
+    if not title or not location or not country or not city:
+        return jsonify({'error': _('fill_all')}), 400
+        
     filename = None
     if photo:
         filename = secure_filename(photo.filename)
         photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-    
-    new_task = Task(
-        title=title,
-        location=location,
-        country=country,
-        region=region,
+        
+    new_report = Report(
+        title=title, 
+        location=location, 
+        country=country, 
+        region=region, 
         city=city,
         reporter_id=session['user_id'],
         report_photo=filename
     )
-    db.session.add(new_task)
+    db.session.add(new_report)
     db.session.commit()
+    
     return jsonify({'message': 'Success'})
-
-@app.route('/worker')
-def worker():
-    if 'user_id' not in session: return redirect(url_for('auth'))
-    user = User.query.get(session['user_id'])
-    if not user:
-        session.clear()
-        return redirect(url_for('auth'))
-    tasks = Task.query.filter_by(status='available').all()
-    return render_template('worker.html', user=user, tasks=tasks)
 
 @app.route('/complete_task/<int:task_id>', methods=['POST'])
 def complete_task(task_id):
-    if 'user_id' not in session: return jsonify({'error': 'Unauthorized'}), 401
-    task = Task.query.get(task_id)
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+        
     user = User.query.get(session['user_id'])
+    task = Report.query.get(task_id)
     
+    if not task or task.status != 'in_progress':
+        return jsonify({'error': 'Task not found or already completed'}), 404
+        
     proof_photo = request.files.get('proof_photo')
     if not proof_photo:
-        return jsonify({'error': 'Нужно фото подтверждение' if session.get('lang')=='ru' else 'Фото дәлелдеме қажет'}), 400
-    
+        return jsonify({'error': 'Photo proof required'}), 400
+        
     filename = secure_filename(proof_photo.filename)
     proof_photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
     
     task.status = 'fixed'
-    task.worker_id = user.id
     task.proof_photo = filename
     user.points += task.reward_points
     db.session.commit()
+    
     return jsonify({'message': 'Success'})
 
 @app.route('/shop')
 def shop():
-    if 'user_id' not in session: return redirect(url_for('auth'))
+    if 'user_id' not in session:
+        return redirect(url_for('auth'))
     user = User.query.get(session['user_id'])
     if not user:
         session.clear()
         return redirect(url_for('auth'))
-    items = ShopItem.query.all()
+    
+    items = [
+        {'id': 1, 'name': _('item_cap'), 'desc': _('item_cap_desc'), 'price': 10000},
+        {'id': 2, 'name': _('item_shirt'), 'desc': _('item_shirt_desc'), 'price': 15000},
+        {'id': 3, 'name': _('item_lunch'), 'desc': _('item_lunch_desc'), 'price': 5000},
+        {'id': 4, 'name': _('item_tools'), 'desc': _('item_tools_desc'), 'price': 25000},
+    ]
     return render_template('shop.html', user=user, items=items)
 
-@app.route('/buy_item/<int:item_id>', methods=['POST'])
-def buy_item(item_id):
-    if 'user_id' not in session: return jsonify({'error': 'Unauthorized'}), 401
+@app.route('/buy/<int:item_id>', methods=['POST'])
+def buy(item_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+        
     user = User.query.get(session['user_id'])
-    item = ShopItem.query.get(item_id)
+    prices = {1: 10000, 2: 15000, 3: 5000, 4: 25000}
+    price = prices.get(item_id)
     
-    if user.points >= item.price:
-        user.points -= item.price
-        db.session.commit()
-        return jsonify({'message': 'Success'})
-    return jsonify({'error': 'Недостаточно средств' if session.get('lang')=='ru' else 'Қаражат жеткіліксіз'}), 400
+    if not price:
+        return jsonify({'error': 'Item not found'}), 404
+        
+    if user.points < price:
+        return jsonify({'error': 'Not enough money'}), 400
+        
+    user.points -= price
+    db.session.commit()
+    return jsonify({'message': 'Success'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
