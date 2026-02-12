@@ -33,8 +33,9 @@ class Report(db.Model):
     country = db.Column(db.String(100))
     region = db.Column(db.String(100))
     city = db.Column(db.String(100))
-    status = db.Column(db.String(20), default='available') # available, completed
-    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    status = db.Column(db.String(20), default='available') # available, pending_approval, completed
+    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # Citizen who reported
+    worker_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # Worker who completed the task
     report_photo = db.Column(db.String(200))
     proof_photo = db.Column(db.String(200))
     price = db.Column(db.Integer, default=5000)  # Custom price set by citizen
@@ -129,7 +130,11 @@ TRANSLATIONS = {
         'price': 'Цена',
         'set_price': 'Установить цену (₸)',
         'min_price': 'Минимальная цена: 1000 ₸',
-        'balance': 'Баланс'
+        'balance': 'Баланс',
+        'approve_work': 'Подтвердить работу',
+        'reject_work': 'Отклонить',
+        'pending_approval': 'Ожидает подтверждения',
+        'proof': 'Фотоотчет'
     },
     'kk': {
         'welcome_title': 'LosPollos — Қалалық Шешімдер',
@@ -219,7 +224,11 @@ TRANSLATIONS = {
         'price': 'Баға',
         'set_price': 'Баға белгілеу (₸)',
         'min_price': 'Ең аз баға: 1000 ₸',
-        'balance': 'Балансы'
+        'balance': 'Балансы',
+        'approve_work': 'Жұмысты растау',
+        'reject_work': 'Бас тарту',
+        'pending_approval': 'Тасықталу күтіледі',
+        'proof': 'Фотоәтіндік'
     }
 }
 
@@ -405,7 +414,7 @@ def complete_task(task_id):
     
     user = User.query.get(session['user_id'])
     task = Report.query.get(task_id)
-    photo = request.files.get('photo')
+    photo = request.files.get('proof_photo')  # Fixed: use 'proof_photo' instead of 'photo'
     
     if not photo:
         return jsonify({'error': 'Photo required'}), 400
@@ -414,12 +423,52 @@ def complete_task(task_id):
         filename = secure_filename(photo.filename)
         photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         
-        task.status = 'completed'
+        task.status = 'pending_approval'  # Changed to pending approval
         task.proof_photo = filename
-        user.points += task.price  # Use custom price from task
+        task.worker_id = user.id  # Track which worker completed the task
         db.session.commit()
         return jsonify({'message': 'Success'})
     return jsonify({'error': 'Task not found'}), 404
+
+@app.route('/approve_task/<int:task_id>', methods=['POST'])
+def approve_task(task_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    user = User.query.get(session['user_id'])
+    task = Report.query.get(task_id)
+    
+    if not task or task.reporter_id != user.id:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    if task.status == 'pending_approval':
+        task.status = 'completed'
+        # Pay the worker
+        if task.worker_id:
+            worker = User.query.get(task.worker_id)
+            if worker:
+                worker.points += task.price
+        db.session.commit()
+        return jsonify({'message': 'Success'})
+    return jsonify({'error': 'Task not in pending approval'}), 400
+
+@app.route('/reject_task/<int:task_id>', methods=['POST'])
+def reject_task(task_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    user = User.query.get(session['user_id'])
+    task = Report.query.get(task_id)
+    
+    if not task or task.reporter_id != user.id:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    if task.status == 'pending_approval':
+        task.status = 'available'  # Return to available
+        task.proof_photo = None  # Clear the proof photo
+        db.session.commit()
+        return jsonify({'message': 'Success'})
+    return jsonify({'error': 'Task not in pending approval'}), 400
 
 @app.route('/shop')
 def shop():

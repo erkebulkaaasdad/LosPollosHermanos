@@ -22,6 +22,15 @@
         border-radius: 6px;
         box-sizing: border-box;
     }
+    .proof-section { margin-top: 15px; border: 2px solid #ffc107; padding: 15px; border-radius: 8px; background: #fffbea; }
+    .proof-image { width: 100%; max-height: 250px; object-fit: cover; border-radius: 6px; margin-bottom: 10px; }
+    .approve-btn { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; font-weight: bold; }
+    .approve-btn:hover { background: #218838; }
+    .reject-btn { background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .reject-btn:hover { background: #c82333; }
+    .status-pending { color: #ff9800; font-weight: bold; }
+    .status-completed { color: #4caf50; font-weight: bold; }
+    .status-available { color: #2196f3; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -108,7 +117,25 @@
       <div class="report-item">
         <strong>{{ _(report.title) }}</strong><br>
         📍 {{ report.country }}, {{ report.city }}, {{ report.location }}<br>
-        {{ _('status') if _('status') != 'status' else 'Статус' }}: <span class="status-{{ report.status }}">{{ _('status_in_progress') if report.status == 'available' else _('status_fixed') }}</span>
+        💵 {{ report.price }} ₸<br>
+        {{ _('status') }}: <span class="status-{{ report.status }}">
+          {% if report.status == 'available' %}
+            {{ _('status_in_progress') }}
+          {% elif report.status == 'pending_approval' %}
+            {{ _('pending_approval') }}
+          {% else %}
+            {{ _('status_fixed') }}
+          {% endif %}
+        </span><br>
+        
+        {% if report.status == 'pending_approval' and report.proof_photo %}
+        <div class="proof-section">
+          <p><strong>{{ _('proof') }}:</strong></p>
+          <img src="{{ url_for('static', filename='uploads/' + report.proof_photo) }}" class="proof-image">
+          <button class="approve-btn" onclick="approveTask({{ report.id }})">{{ _('approve_work') }}</button>
+          <button class="reject-btn" onclick="rejectTask({{ report.id }})">{{ _('reject_work') }}</button>
+        </div>
+        {% endif %}
       </div>
       {% else %}
       <p>{{ _('no_reports') }}</p>
@@ -156,6 +183,46 @@
   window.onload = () => {
     toggleKzFields();
   };
+
+  async function approveTask(reportId) {
+    if (!confirm("{{ 'Вы подтверждаете выполнение работы?' if current_lang == 'ru' else 'Жұмысты растайсыз ба?' }}")) return;
+
+    try {
+        const response = await fetch('/approve_task/' + reportId, {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            alert("{{ 'Работа подтверждена! Деньги отправлены рабочему.' if current_lang == 'ru' else 'Жұмыс растанды! Ақша жұмысшыға жіберілді.' }}");
+            window.location.reload();
+        } else {
+            const result = await response.json();
+            alert(result.error || "{{ _('error') }}");
+        }
+    } catch (e) {
+        alert("Error connecting to server");
+    }
+  }
+
+  async function rejectTask(reportId) {
+    if (!confirm("{{ 'Вы отклоняете работу? Она вернется в список доступных заданий.' if current_lang == 'ru' else 'Жұмысты бас тартасыз ба? Ол қолжетімді тапсырмалар тізіміне қайтарылады.' }}")) return;
+
+    try {
+        const response = await fetch('/reject_task/' + reportId, {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            alert("{{ 'Работа отклонена.' if current_lang == 'ru' else 'Жұмыс бас тартылды.' }}");
+            window.location.reload();
+        } else {
+            const result = await response.json();
+            alert(result.error || "{{ _('error') }}");
+        }
+    } catch (e) {
+        alert("Error connecting to server");
+    }
+  }
 
   async function submitReport() {
     const type = document.getElementById("type").value;
