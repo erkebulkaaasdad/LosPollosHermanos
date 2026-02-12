@@ -203,7 +203,7 @@ TRANSLATIONS = {
         'select_city': 'Қаланы таңдаңыз',
         'enter_city': 'Қалаңызды енгізіңіз',
         'fill_all': 'Барлық деректерді толтырыңыз',
-        'success_reg': 'Тіркелу сәтті аяқталды! Енді кіре аласыз.',
+        'success_reg': 'Тіркелу sәтті аяқталды! Енді кіре аласыз.',
         'error': 'Қате',
         'search_hint': 'Іздеу үшін атауды енгізіңіз',
         'item_cap': 'Фирмалық кепка',
@@ -420,20 +420,20 @@ def shop():
         return redirect(url_for('auth'))
     
     items = [
-        {'id': 1, 'name': _('item_cap'), 'desc': _('item_cap_desc'), 'price': 5000},
-        {'id': 2, 'name': _('item_shirt'), 'desc': _('item_shirt_desc'), 'price': 8000},
-        {'id': 3, 'name': _('item_lunch'), 'desc': _('item_lunch_desc'), 'price': 3000},
-        {'id': 4, 'name': _('item_tools'), 'desc': _('item_tools_desc'), 'price': 15000},
-        {'id': 5, 'name': _('item_powerbank'), 'desc': _('item_powerbank_desc'), 'price': 12000},
-        {'id': 6, 'name': _('item_backpack'), 'desc': _('item_backpack_desc'), 'price': 10000},
-        {'id': 7, 'name': _('item_bicycle'), 'desc': _('item_bicycle_desc'), 'price': 50000},
-        {'id': 8, 'name': _('item_scooter'), 'desc': _('item_scooter_desc'), 'price': 80000},
-        {'id': 9, 'name': _('item_headphones'), 'desc': _('item_headphones_desc'), 'price': 20000},
+        {'id': 1, 'name_key': 'item_cap', 'desc_key': 'item_cap_desc', 'price': 5000},
+        {'id': 2, 'name_key': 'item_shirt', 'desc_key': 'item_shirt_desc', 'price': 8000},
+        {'id': 3, 'name_key': 'item_lunch', 'desc_key': 'item_lunch_desc', 'price': 3000},
+        {'id': 4, 'name_key': 'item_tools', 'desc_key': 'item_tools_desc', 'price': 15000},
+        {'id': 5, 'name_key': 'item_powerbank', 'desc_key': 'item_powerbank_desc', 'price': 12000},
+        {'id': 6, 'name_key': 'item_backpack', 'desc_key': 'item_backpack_desc', 'price': 10000},
+        {'id': 7, 'name_key': 'item_bicycle', 'desc_key': 'item_bicycle_desc', 'price': 50000},
+        {'id': 8, 'name_key': 'item_scooter', 'desc_key': 'item_scooter_desc', 'price': 80000},
+        {'id': 9, 'name_key': 'item_headphones', 'desc_key': 'item_headphones_desc', 'price': 20000},
     ]
     return render_template('shop.html', user=user, items=items)
 
-@app.route('/buy/<int:item_id>', methods=['POST'])
-def buy(item_id):
+@app.route('/buy_item/<int:item_id>', methods=['POST'])
+def buy_item(item_id):
     if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
         
@@ -445,7 +445,7 @@ def buy(item_id):
         return jsonify({'error': 'Item not found'}), 404
         
     if user.points < price:
-        return jsonify({'error': 'Not enough money'}), 400
+        return jsonify({'error': _('error')}), 400
         
     user.points -= price
     db.session.commit()
