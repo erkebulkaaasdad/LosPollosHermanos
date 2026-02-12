@@ -66,8 +66,8 @@
     <div class="shop-grid">
       {% for item in items %}
       <div class="shop-card">
-        <h3>{{ _(item.name_key) }}</h3>
-        <p>{{ _(item.desc_key) }}</p>
+        <h3>{{ _(item.name) }}</h3>
+        <p>{{ _(item.desc) }}</p>
         <span class="price-tag">{{ item.price }} ₸</span>
         <button onclick="buyItem({{ item.id }})">{{ _('buy') }}</button>
       </div>
