@@ -363,8 +363,16 @@ def submit_report():
     city = request.form.get('city')
     photo = request.files.get('photo')
     
+    # Debug print to help identify missing fields
+    print(f"DEBUG: title={title}, location={location}, country={country}, city={city}")
+    
     if not title or not location or not country or not city:
-        return jsonify({'error': _('fill_all')}), 400
+        missing = []
+        if not title: missing.append('title')
+        if not location: missing.append('location')
+        if not country: missing.append('country')
+        if not city: missing.append('city')
+        return jsonify({'error': f"{_('fill_all')} (Missing: {', '.join(missing)})"}), 400
         
     filename = None
     if photo:
