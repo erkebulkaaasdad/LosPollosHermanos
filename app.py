@@ -1,125 +1,106 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+import os
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-import os
 
 app = Flask(__name__)
 app.secret_key = 'lospollos_secret_key'
-
-# Database configuration
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'database.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///lospollos.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
 
-# Upload configuration
-UPLOAD_FOLDER = os.path.join(basedir, 'static/uploads')
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB limit
-
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+if not os.path.exists(app.config['UPLOAD_FOLDER']):
+    os.makedirs(app.config['UPLOAD_FOLDER'])
 
 db = SQLAlchemy(app)
 
-# Location Data
-ALL_COUNTRIES = [
-    "Афганистан", "Албания", "Алжир", "Андорра", "Ангола", "Антигуа и Барбуда", "Аргентина", "Армения", "Австралия", "Австрия", "Азербайджан",
-    "Багамы", "Бахрейн", "Бангладеш", "Барбадос", "Беларусь", "Бельгия", "Белиз", "Бенин", "Бутан", "Боливия", "Босния и Герцеговина", "Ботсвана", "Бразилия", "Бруней", "Болгария", "Буркина-Фасо", "Бурунди",
-    "Кабо-Верде", "Камбоджа", "Камерун", "Канада", "Центральноафриканская Республика", "Чад", "Чили", "Китай", "Колумбия", "Коморы", "Конго", "Коста-Рика", "Хорватия", "Куба", "Кипр", "Чехия",
-    "Дания", "Джибути", "Доминика", "Доминиканская Республика", "Эквадор", "Египет", "Сальвадор", "Экваториальная Гвинея", "Эритрея", "Эстония", "Эсватини", "Эфиопия",
-    "Фиджи", "Финляндия", "Франция", "Габон", "Гамбия", "Грузия", "Германия", "Гана", "Греция", "Гренада", "Гватемала", "Гвинея", "Гвинея-Бисау", "Гайана",
-    "Гаити", "Гондурас", "Венгрия", "Исландия", "Индия", "Индонезия", "Иран", "Ирак", "Ирландия", "Израиль", "Италия",
-    "Ямайка", "Япония", "Иордания", "Казахстан", "Кения", "Кирибати", "Корея Северная", "Корея Южная", "Кувейт", "Кыргызстан",
-    "Лаос", "Латвия", "Ливан", "Лесото", "Либерия", "Ливия", "Лихтенштейн", "Литва", "Люксембург",
-    "Мадагаскар", "Малави", "Малайзия", "Мальдивы", "Мали", "Мальта", "Маршалловы Острова", "Мавритания", "Маврикий", "Мексика", "Микронезия", "Молдова", "Монако", "Монголия", "Черногория", "Марокко", "Мозамбик", "Мьянма",
-    "Намибия", "Науру", "Непал", "Нидерланды", "Новая Зеландия", "Никарагуа", "Нигер", "Нигерия", "Северная Македония", "Норвегия",
-    "Оман", "Пакистан", "Палау", "Панама", "Папуа-Новая Гвинея", "Парагвай", "Перу", "Филиппины", "Польша", "Португалия",
-    "Катар", "Румыния", "Россия", "Руанда", "Сент-Китс и Невис", "Сент-Люсия", "Сент-Винсент и Гренадины", "Самоа", "Сан-Марино", "Сан-Томе и Принсипи", "Саудовская Аравия", "Сенегал", "Сербия", "Сейшелы", "Сьерра-Леоне", "Сингапур", "Словакия", "Словения", "Соломоновы Острова", "Сомали", "Южная Африка", "Южный Судан", "Испания", "Шри-Ланка", "Судан", "Суринам", "Швеция", "Швейцария", "Сирия",
-    "Таджикистан", "Танзания", "Таиланд", "Тимор-Лешти", "Того", "Тонга", "Тринидад и Тобаго", "Тунис", "Турция", "Туркменистан", "Тувалу",
-    "Уганда", "Украина", "Объединенные Арабские Эмираты", "Великобритания", "США", "Уругвай", "Узбекистан",
-    "Вануату", "Венесуэла", "Вьетнам", "Йемен", "Замбия", "Зимбабве"
-]
+# --- Models ---
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password = db.Column(db.String(120), nullable=False)
+    points = db.Column(db.Integer, default=0)
+    country = db.Column(db.String(100))
+    region = db.Column(db.String(100))
+    city = db.Column(db.String(100))
 
-KZ_LOCATIONS = {
-    "Алматинская область": ["Алматы", "Талдыкорган", "Каскелен"],
-    "Астанинская область": ["Астана"],
-    "Акмолинская область": ["Кокшетау", "Степногорск"],
-    "Карагандинская область": ["Караганда", "Темиртау", "Балхаш"],
-    "Шымкент": ["Шымкент"],
-    "Абайская область": ["Семей", "Курчатов"],
-    "Жетысуская область": ["Талдыкорган", "Текели"],
-    "Улытауская область": ["Жезказган", "Сатпаев"],
-    "Актюбинская область": ["Актобе", "Кандыагаш"],
-    "Атырауская область": ["Атырау", "Кульсары"],
-    "Восточно-Казахстанская область": ["Усть-Каменогорск", "Риддер"],
-    "Жамбылская область": ["Тараз", "Шу"],
-    "Западно-Казахстанская область": ["Уральск", "Аксай"],
-    "Костанайская область": ["Костанай", "Рудный"],
-    "Кызылординская область": ["Кызылорда", "Байконур"],
-    "Мангистауская область": ["Актау", "Жанаозен"],
-    "Павлодарская область": ["Павлодар", "Экибастуз"],
-    "Северо-Казахстанская область": ["Петропавловск"],
-    "Туркестанская область": ["Туркестан", "Кентау"]
-}
+class Report(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    location = db.Column(db.String(200), nullable=False)
+    country = db.Column(db.String(100))
+    region = db.Column(db.String(100))
+    city = db.Column(db.String(100))
+    status = db.Column(db.String(20), default='available') # available, completed
+    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    report_photo = db.Column(db.String(200))
+    proof_photo = db.Column(db.String(200))
 
-# Translations
+# --- Translations ---
 TRANSLATIONS = {
     'ru': {
-        'welcome_title': 'Добро пожаловать в LosPollos',
+        'welcome': 'Добро пожаловать в LosPollos',
         'tagline': 'Вместе мы сделаем наш город лучше',
+        'get_started': 'Начать использовать',
         'how_it_works': 'Как это работает?',
-        'description': 'Наш сервис объединяет активных жителей и трудолюбивых рабочих для решения городских проблем.',
-        'for_citizens': 'Жителям',
-        'citizen_desc': 'Видите яму на дороге или сломанный светофор? Просто сфотографируйте и отправьте заявку. Мы найдем того, кто это исправит.',
-        'for_workers': 'Рабочим',
-        'worker_desc': 'Выполняйте заявки от жителей, прикрепляйте фотоотчет и получайте выплаты в Тенге за каждое успешно завершенное дело.',
-        'rewards': 'Награды',
-        'rewards_desc': 'Тратьте заработанные средства в нашем магазине на фирменную одежду, инструменты или сертификаты на вкусную еду.',
-        'start_button': 'Начать использовать',
-        'trash_on_streets': 'Горы мусора на улицах',
-        'potholes_on_roads': 'Опасные ямы на дорогах',
-        'illegal_dumps': 'Несанкционированные свалки',
-        'state_funding_title': 'Государственная поддержка',
-        'state_funding_desc': 'Проект финансируется государством Казахстан. Все выплаты рабочим производятся из государственного бюджета для поддержания чистоты и порядка в наших городах.',
+        'citizen_title': 'Для жителей',
+        'citizen_desc': 'Сообщайте о проблемах города (мусор, ямы, освещение) и следите за их решением.',
+        'worker_title': 'Для рабочих',
+        'worker_desc': 'Выполняйте заявки, делайте фотоотчет и получайте вознаграждение от государства.',
+        'rewards_title': 'Награды и Магазин',
+        'rewards_desc': 'За каждое выполненное задание вы получаете 5 000 ₸, которые можно потратить в магазине.',
+        'state_funding': 'Государственная поддержка',
+        'state_desc': 'Этот проект финансируется государством Казахстан. Все выплаты производятся из бюджета по программе благоустройства.',
+        'login_reg': 'Войти / Регистрация',
+        'username_label': 'Логин',
+        'password': 'Пароль',
+        'confirm_password': 'Повторите пароль',
         'login': 'Войти',
         'register': 'Регистрация',
-        'logout': 'Выйти',
+        'for_citizens': 'Личный кабинет жителя',
+        'for_workers': 'Личный кабинет рабочего',
         'switch_to_worker': 'Перейти в Рабочий',
         'switch_to_citizen': 'Перейти в Житель',
         'shop': 'Магазин',
-        'balance': 'Ваш баланс',
-        'my_reports': 'Мои заявки',
-        'new_report': 'Новая заявка',
+        'logout': 'Выйти',
+        'new_report': 'Сообщить о проблеме',
         'report_type': 'Тип проблемы',
-        'location': 'Адрес / место',
+        'type_pothole': 'Яма на дороге',
+        'type_traffic_light': 'Не работает светофор',
+        'type_hatch': 'Открытый люк',
+        'type_trash': 'Мусор / Свалка',
+        'type_other': 'Другое',
         'country': 'Страна',
         'region': 'Область',
         'city': 'Город',
+        'location': 'Точный адрес / Описание',
+        'address_placeholder': 'Например: ул. Абая 15, возле входа',
         'photo': 'Фото проблемы',
         'submit': 'Отправить',
+        'my_reports': 'Мои заявки',
+        'status': 'Статус',
         'available_tasks': 'Доступные задания',
-        'complete_task': 'Завершить и получить баллы',
+        'complete_task': 'Завершить и получить тенге',
         'proof_photo': 'Прикрепите фото результата:',
         'status_in_progress': 'В работе',
         'status_fixed': 'Исправлено',
         'no_reports': 'Вы еще не отправляли заявок.',
         'no_tasks': 'Пока нет новых заданий.',
         'about_system': 'О системе',
-        'system_desc': 'Для завершения задания необходимо загрузить фотографию выполненной работы. После загрузки средства будут начислены на ваш баланс автоматически.',
+        'system_desc': 'Для завершения задания необходимо загрузить фотографию выполненной работы. После загрузки средства автоматически зачислятся на ваш баланс.',
         'shop_title': 'Магазин',
-        'shop_desc': 'Тратьте баллы на эксклюзивные товары',
+        'shop_desc': 'Тратьте тенге на эксклюзивные товары',
         'available_items': 'Доступные товары',
         'buy': 'Купить',
         'back_home': 'На главную',
-        'password': 'Пароль',
-        'email_label': 'Email',
         'location_data': 'Данные о местоположении',
         'select_country': 'Выберите или введите страну',
         'select_region': 'Выберите область',
         'select_city': 'Выберите город',
         'enter_city': 'Введите ваш город',
         'fill_all': 'Заполните все данные',
+        'password_mismatch': 'Пароли не совпадают',
         'success_reg': 'Регистрация успешна! Теперь вы можете войти.',
         'error': 'Ошибка',
         'search_hint': 'Введите название для поиска',
@@ -129,58 +110,60 @@ TRANSLATIONS = {
         'item_shirt_desc': 'Стильная футболка для лучших работников',
         'item_lunch': 'Сертификат на обед',
         'item_lunch_desc': 'Бесплатное комбо в нашем ресторане',
-        'item_tools': 'Инструменты',
-        'item_tools_desc': 'Набор профессиональных инструментов',
+        'item_tools': 'Набор инструментов',
+        'item_tools_desc': 'Профессиональный набор инструментов',
         'item_powerbank': 'Повербанк',
         'item_powerbank_desc': 'Мощный аккумулятор для ваших гаджетов',
         'item_backpack': 'Рюкзак',
         'item_backpack_desc': 'Вместительный рюкзак для работы',
-        'item_bicycle': 'Велосипед',
-        'item_bicycle_desc': 'Для быстрого передвижения по городу',
+        'item_earphones': 'Наушники',
+        'item_earphones_desc': 'Беспроводные наушники с чистым звуком',
+        'item_bike': 'Велосипед',
+        'item_bike_desc': 'Надежный городской велосипед',
         'item_scooter': 'Электросамокат',
-        'item_scooter_desc': 'Современный транспорт для активных',
-        'item_headphones': 'Наушники',
-        'item_headphones_desc': 'Беспроводные наушники с шумоподавлением',
-        'type_pothole': 'Яма на дороге',
-        'type_traffic_light': 'Сломанный светофор',
-        'type_hatch': 'Открытый люк',
-        'type_trash': 'Мусор',
-        'type_other': 'Другое',
-        'address_placeholder': 'Например: ул. Абая, дом 25'
+        'item_scooter_desc': 'Быстрый способ передвижения по городу'
     },
     'kk': {
-        'welcome_title': 'LosPollos-қа қош келдіңіз',
+        'welcome': 'LosPollos-қа қош келдіңіз',
         'tagline': 'Бірге біз қаламызды жақсартамыз',
+        'get_started': 'Бастау',
         'how_it_works': 'Бұл қалай жұмыс істейді?',
-        'description': 'Біздің сервис қалалық мәселелерді шешу үшін белсенді тұрғындар мен еңбекқор жұмысшыларды біріктіреді.',
-        'for_citizens': 'Тұрғындарға',
-        'citizen_desc': 'Жолдағы шұңқырды немесе бұзылған бағдаршамды көрдіңіз бе? Фотоға түсіріп, өтінім жіберіңіз. Біз оны жөндейтін адамды табамыз.',
-        'for_workers': 'Жұмысшыларға',
-        'worker_desc': 'Тұрғындардың өтінімдерін орындаңыз, фотоесепті тіркеңіз және әрбір сәтті аяқталған іс үшін Теңгемен төлем алыңыз.',
-        'rewards': 'Марапаттар',
-        'rewards_desc': 'Тапқан қаражатыңызды біздің дүкенде фирмалық киімдерге, құралдарға немесе дәмді тағамға сертификаттарға жұмсаңыз.',
-        'start_button': 'Бастау',
-        'trash_on_streets': 'Көшедегі қоқыс үйінділері',
-        'potholes_on_roads': 'Жолдағы қауіпті шұңқырлар',
-        'illegal_dumps': 'Рұқсат етілмеген қоқыс орындары',
-        'state_funding_title': 'Мемлекеттік қолдау',
-        'state_funding_desc': 'Жобаны Қазақстан мемлекеті қаржыландырады. Жұмысшыларға барлық төлемдер қалаларымыздағы тазалық пен тәртіпті сақтау үшін мемлекеттік бюджеттен жүзеге асырылады.',
+        'citizen_title': 'Тұрғындар үшін',
+        'citizen_desc': 'Қала мәселелері (қоқыс, шұңқырлар, жарықтандыру) туралы хабарлаңыз және олардың шешілуін қадағалаңыз.',
+        'worker_title': 'Жұмысшылар үшін',
+        'worker_desc': 'Өтінімдерді орындаңыз, фотоесеп жасаңыз және мемлекеттен сыйақы алыңыз.',
+        'rewards_title': 'Сыйақылар және Дүкен',
+        'rewards_desc': 'Әрбір орындалған тапсырма үшін сіз 5 000 ₸ аласыз, оны дүкенде жұмсауға болады.',
+        'state_funding': 'Мемлекеттік қолдау',
+        'state_desc': 'Бұл жобаны Қазақстан мемлекеті қаржыландырады. Барлық төлемдер абаттандыру бағдарламасы бойынша бюджеттен жүзеге асырылады.',
+        'login_reg': 'Кіру / Тіркелу',
+        'username_label': 'Логин',
+        'password': 'Құпия сөз',
+        'confirm_password': 'Құпия сөзді қайталаңыз',
         'login': 'Кіру',
         'register': 'Тіркелу',
-        'logout': 'Шығу',
-        'switch_to_worker': 'Жұмысшыға ауысу',
-        'switch_to_citizen': 'Тұрғынға ауысу',
+        'for_citizens': 'Тұрғынның жеке кабинеті',
+        'for_workers': 'Жұмысшының жеке кабинеті',
+        'switch_to_worker': 'Жұмысшыға өту',
+        'switch_to_citizen': 'Тұрғынға өту',
         'shop': 'Дүкен',
-        'balance': 'Сіздің балансыңыз',
-        'my_reports': 'Менің өтінімдерім',
-        'new_report': 'Жаңа өтінім',
+        'logout': 'Шығу',
+        'new_report': 'Мәселе туралы хабарлау',
         'report_type': 'Мәселе түрі',
-        'location': 'Мекен-жайы / орны',
+        'type_pothole': 'Жолдағы шұңқыр',
+        'type_traffic_light': 'Бағдаршам істемейді',
+        'type_hatch': 'Ашық люк',
+        'type_trash': 'Қоқыс / Үйінді',
+        'type_other': 'Басқа',
         'country': 'Ел',
         'region': 'Облыс',
         'city': 'Қала',
+        'location': 'Нақты мекенжай / Сипаттама',
+        'address_placeholder': 'Мысалы: Абай к-сі 15, кіреберіс жанында',
         'photo': 'Мәселенің фотосы',
         'submit': 'Жіберу',
+        'my_reports': 'Менің өтінімдерім',
+        'status': 'Мәртебесі',
         'available_tasks': 'Қолжетімді тапсырмалар',
         'complete_task': 'Аяқтау және теңге алу',
         'proof_photo': 'Нәтиженің фотосын тіркеңіз:',
@@ -195,15 +178,14 @@ TRANSLATIONS = {
         'available_items': 'Қолжетімді тауарлар',
         'buy': 'Сатып алу',
         'back_home': 'Басты бетке',
-        'password': 'Құпия сөз',
-        'email_label': 'Email',
         'location_data': 'Орналасқан жері туралы деректер',
         'select_country': 'Елді таңдаңыз немесе енгізіңіз',
         'select_region': 'Облысты таңдаңыз',
         'select_city': 'Қаланы таңдаңыз',
         'enter_city': 'Қалаңызды енгізіңіз',
         'fill_all': 'Барлық деректерді толтырыңыз',
-        'success_reg': 'Тіркелу sәтті аяқталды! Енді кіре аласыз.',
+        'password_mismatch': 'Құпия сөздер сәйкес келмейді',
+        'success_reg': 'Тіркелу сәтті аяқталды! Енді кіре аласыз.',
         'error': 'Қате',
         'search_hint': 'Іздеу үшін атауды енгізіңіз',
         'item_cap': 'Фирмалық кепка',
@@ -212,60 +194,79 @@ TRANSLATIONS = {
         'item_shirt_desc': 'Үздік жұмысшыларға арналған стильді футболка',
         'item_lunch': 'Түскі ас сертификаты',
         'item_lunch_desc': 'Біздің мейрамханада тегін комбо',
-        'item_tools': 'Құралдар',
+        'item_tools': 'Құралдар жиынтығы',
         'item_tools_desc': 'Кәсіби құралдар жиынтығы',
         'item_powerbank': 'Повербанк',
         'item_powerbank_desc': 'Гаджеттеріңізге арналған қуатты аккумулятор',
         'item_backpack': 'Рюкзак',
         'item_backpack_desc': 'Жұмысқа арналған сыйымды рюкзак',
-        'item_bicycle': 'Велосипед',
-        'item_bicycle_desc': 'Қала ішінде жылдам қозғалу үшін',
+        'item_earphones': 'Құлаққаптар',
+        'item_earphones_desc': 'Таза дыбысы бар сымсыз құлаққаптар',
+        'item_bike': 'Велосипед',
+        'item_bike_desc': 'Сенімді қалалық велосипед',
         'item_scooter': 'Электросамокат',
-        'item_scooter_desc': 'Белсенділерге арналған заманауи көлік',
-        'item_headphones': 'Құлаққап',
-        'item_headphones_desc': 'Шуды басатын сымсыз құлаққаптар',
-        'type_pothole': 'Жолдағы шұңқыр',
-        'type_traffic_light': 'Бұзылған бағдаршам',
-        'type_hatch': 'Ашық люк',
-        'type_trash': 'Қоқыс',
-        'type_other': 'Басқа',
-        'address_placeholder': 'Мысалы: Абай к-сі, 25 үй'
+        'item_scooter_desc': 'Қала бойынша жылдам қозғалу тәсілі'
     }
 }
 
-# Models
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    points = db.Column(db.Integer, default=0)
-    country = db.Column(db.String(100))
-    region = db.Column(db.String(100))
-    city = db.Column(db.String(100))
+COUNTRIES = ["Казахстан", "Россия", "США", "Китай", "Германия", "Франция", "Великобритания", "Турция", "ОАЭ", "Япония", "Южная Корея", "Канада", "Италия", "Испания", "Бразилия", "Индия", "Австралия", "Египет", "Таиланд", "Узбекистан", "Кыргызстан"]
 
-class Report(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100), nullable=False)
-    location = db.Column(db.String(200), nullable=False)
-    country = db.Column(db.String(100))
-    region = db.Column(db.String(100))
-    city = db.Column(db.String(100))
-    status = db.Column(db.String(20), default='in_progress')
-    reward_points = db.Column(db.Integer, default=5000)
-    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    report_photo = db.Column(db.String(200))
-    proof_photo = db.Column(db.String(200))
+KZ_LOCATIONS = {
+    "Алматы": ["Алматы"],
+    "Астана": ["Астана"],
+    "Шымкент": ["Шымкент"],
+    "Абайская область": ["Семей", "Аягоз", "Курчатов"],
+    "Акмолинская область": ["Кокшетау", "Степногорск", "Щучинск"],
+    "Актюбинская область": ["Актобе", "Кандыагаш", "Хромтау"],
+    "Алматинская область": ["Конаев", "Каскелен", "Талгар"],
+    "Атырауская область": ["Атырау", "Кульсары"],
+    "Западно-Казахстанская область": ["Уральск", "Аксай"],
+    "Жамбылская область": ["Тараз", "Шу", "Каратау"],
+    "Жетысуская область": ["Талдыкорган", "Текели", "Жаркент"],
+    "Карагандинская область": ["Караганда", "Темиртау", "Балхаш", "Шахтинск"],
+    "Костанайская область": ["Костанай", "Рудный", "Аркалык", "Лисаковск"],
+    "Кызылординская область": ["Кызылорда", "Байконур"],
+    "Мангистауская область": ["Актау", "Жанаозен"],
+    "Павлодарская область": ["Павлодар", "Экибастуз", "Аксу"],
+    "Северо-Казахстанская область": ["Петропавловск", "Тайынша"],
+    "Туркестанская область": ["Туркестан", "Кентау", "Арыс", "Сарыагаш"],
+    "Улытауская область": ["Жезказган", "Сатпаев", "Каражал"],
+    "Восточно-Казахстанская область": ["Усть-Каменогорск", "Риддер", "Алтай"]
+}
 
-with app.app_context():
-    db.create_all()
+SHOP_ITEMS = [
+    {'id': 1, 'name': 'item_cap', 'desc': 'item_cap_desc', 'price': 5000},
+    {'id': 2, 'name': 'item_shirt', 'desc': 'item_shirt_desc', 'price': 8000},
+    {'id': 3, 'name': 'item_lunch', 'desc': 'item_lunch_desc', 'price': 3000},
+    {'id': 4, 'name': 'item_tools', 'desc': 'item_tools_desc', 'price': 15000},
+    {'id': 5, 'name': 'item_powerbank', 'desc': 'item_powerbank_desc', 'price': 12000},
+    {'id': 6, 'name': 'item_backpack', 'desc': 'item_backpack_desc', 'price': 10000},
+    {'id': 7, 'name': 'item_earphones', 'desc': 'item_earphones_desc', 'price': 20000},
+    {'id': 8, 'name': 'item_bike', 'desc': 'item_bike_desc', 'price': 50000},
+    {'id': 9, 'name': 'item_scooter', 'desc': 'item_scooter_desc', 'price': 80000},
+]
 
 def _(key):
     lang = session.get('lang', 'ru')
     return TRANSLATIONS.get(lang, TRANSLATIONS['ru']).get(key, key)
 
 @app.context_processor
-def inject_translate():
+def utility_processor():
     return dict(_=_, current_lang=session.get('lang', 'ru'))
+
+# --- Routes ---
+@app.route('/')
+def welcome():
+    return render_template('welcome.html')
+
+@app.route('/auth')
+def index():
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        if user:
+            return redirect(url_for('client'))
+        session.clear()
+    return render_template('index.html', countries=COUNTRIES, kz_locations=KZ_LOCATIONS)
 
 @app.route('/set_lang/<lang>')
 def set_lang(lang):
@@ -273,82 +274,66 @@ def set_lang(lang):
         session['lang'] = lang
     return redirect(request.referrer or url_for('index'))
 
-@app.route('/')
-def index():
-    if 'user_id' in session:
-        user = User.query.get(session['user_id'])
-        if user:
-            return redirect(url_for('client'))
-        else:
-            session.clear()
-    return render_template('welcome.html')
-
-@app.route('/auth')
-def auth():
-    if 'user_id' in session:
-        return redirect(url_for('client'))
-    return render_template('index.html', countries=ALL_COUNTRIES, kz_locations=KZ_LOCATIONS)
-
 @app.route('/register', methods=['POST'])
 def register():
-    data = request.json
-    email = data.get('email')
-    password = data.get('password')
-    country = data.get('country')
-    region = data.get('region')
-    city = data.get('city')
+    username = request.form.get('username')
+    password = request.form.get('password')
+    confirm_password = request.form.get('confirm_password')
+    country = request.form.get('country')
+    region = request.form.get('region')
+    city = request.form.get('city')
     
-    if not email or not password or not country or not city:
+    if not username or not password or not country or not city:
         return jsonify({'error': _('fill_all')}), 400
         
-    if User.query.filter_by(email=email).first():
-        return jsonify({'error': 'Email already exists'}), 400
+    if password != confirm_password:
+        return jsonify({'error': _('password_mismatch')}), 400
         
-    hashed_password = generate_password_hash(password)
-    new_user = User(email=email, password=hashed_password, country=country, region=region, city=city)
+    if User.query.filter_by(username=username).first():
+        return jsonify({'error': 'Username already exists'}), 400
+        
+    hashed_pw = generate_password_hash(password)
+    new_user = User(username=username, password=hashed_pw, country=country, region=region, city=city)
     db.session.add(new_user)
     db.session.commit()
-    
     return jsonify({'message': _('success_reg')})
 
 @app.route('/login', methods=['POST'])
 def login():
-    data = request.json
-    email = data.get('email')
-    password = data.get('password')
+    username = request.form.get('username')
+    password = request.form.get('password')
+    user = User.query.filter_by(username=username).first()
     
-    user = User.query.filter_by(email=email).first()
     if user and check_password_hash(user.password, password):
         session['user_id'] = user.id
         return jsonify({'message': 'Success'})
-    
-    return jsonify({'error': 'Invalid email or password'}), 401
+    return jsonify({'error': 'Invalid credentials'}), 401
 
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('index'))
+    return redirect(url_for('welcome'))
 
 @app.route('/client')
 def client():
     if 'user_id' not in session:
-        return redirect(url_for('auth'))
+        return redirect(url_for('index'))
     user = User.query.get(session['user_id'])
     if not user:
         session.clear()
-        return redirect(url_for('auth'))
+        return redirect(url_for('index'))
     reports = Report.query.filter_by(reporter_id=user.id).all()
-    return render_template('client.html', user=user, reports=reports, countries=ALL_COUNTRIES, kz_locations=KZ_LOCATIONS)
+    return render_template('client.html', user=user, reports=reports, countries=COUNTRIES, kz_locations=KZ_LOCATIONS)
 
 @app.route('/worker')
 def worker():
     if 'user_id' not in session:
-        return redirect(url_for('auth'))
+        return redirect(url_for('index'))
     user = User.query.get(session['user_id'])
     if not user:
         session.clear()
-        return redirect(url_for('auth'))
-    tasks = Report.query.filter_by(status='in_progress').all()
+        return redirect(url_for('index'))
+    tasks = Report.query.filter_by(status='available').all()
     return render_template('worker.html', user=user, tasks=tasks)
 
 @app.route('/submit_report', methods=['POST'])
@@ -363,16 +348,11 @@ def submit_report():
     city = request.form.get('city')
     photo = request.files.get('photo')
     
-    # Debug print to help identify missing fields
+    # Debug print
     print(f"DEBUG: title={title}, location={location}, country={country}, city={city}")
     
     if not title or not location or not country or not city:
-        missing = []
-        if not title: missing.append('title')
-        if not location: missing.append('location')
-        if not country: missing.append('country')
-        if not city: missing.append('city')
-        return jsonify({'error': f"{_('fill_all')} (Missing: {', '.join(missing)})"}), 400
+        return jsonify({'error': _('fill_all')}), 400
         
     filename = None
     if photo:
@@ -397,67 +377,50 @@ def submit_report():
 def complete_task(task_id):
     if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
-        
+    
     user = User.query.get(session['user_id'])
     task = Report.query.get(task_id)
+    photo = request.files.get('photo')
     
-    if not task or task.status != 'in_progress':
-        return jsonify({'error': 'Task not found or already completed'}), 404
+    if not photo:
+        return jsonify({'error': 'Photo required'}), 400
         
-    proof_photo = request.files.get('proof_photo')
-    if not proof_photo:
-        return jsonify({'error': 'Photo proof required'}), 400
+    if task and task.status == 'available':
+        filename = secure_filename(photo.filename)
+        photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         
-    filename = secure_filename(proof_photo.filename)
-    proof_photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-    
-    task.status = 'fixed'
-    task.proof_photo = filename
-    user.points += task.reward_points
-    db.session.commit()
-    
-    return jsonify({'message': 'Success'})
+        task.status = 'completed'
+        task.proof_photo = filename
+        user.points += 5000
+        db.session.commit()
+        return jsonify({'message': 'Success'})
+    return jsonify({'error': 'Task not found'}), 404
 
 @app.route('/shop')
 def shop():
     if 'user_id' not in session:
-        return redirect(url_for('auth'))
+        return redirect(url_for('index'))
     user = User.query.get(session['user_id'])
     if not user:
         session.clear()
-        return redirect(url_for('auth'))
-    
-    items = [
-        {'id': 1, 'name_key': 'item_cap', 'desc_key': 'item_cap_desc', 'price': 5000},
-        {'id': 2, 'name_key': 'item_shirt', 'desc_key': 'item_shirt_desc', 'price': 8000},
-        {'id': 3, 'name_key': 'item_lunch', 'desc_key': 'item_lunch_desc', 'price': 3000},
-        {'id': 4, 'name_key': 'item_tools', 'desc_key': 'item_tools_desc', 'price': 15000},
-        {'id': 5, 'name_key': 'item_powerbank', 'desc_key': 'item_powerbank_desc', 'price': 12000},
-        {'id': 6, 'name_key': 'item_backpack', 'desc_key': 'item_backpack_desc', 'price': 10000},
-        {'id': 7, 'name_key': 'item_bicycle', 'desc_key': 'item_bicycle_desc', 'price': 50000},
-        {'id': 8, 'name_key': 'item_scooter', 'desc_key': 'item_scooter_desc', 'price': 80000},
-        {'id': 9, 'name_key': 'item_headphones', 'desc_key': 'item_headphones_desc', 'price': 20000},
-    ]
-    return render_template('shop.html', user=user, items=items)
+        return redirect(url_for('index'))
+    return render_template('shop.html', user=user, items=SHOP_ITEMS)
 
-@app.route('/buy_item/<int:item_id>', methods=['POST'])
-def buy_item(item_id):
+@app.route('/buy/<int:item_id>', methods=['POST'])
+def buy(item_id):
     if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
-        
-    user = User.query.get(session['user_id'])
-    prices = {1: 5000, 2: 8000, 3: 3000, 4: 15000, 5: 12000, 6: 10000, 7: 50000, 8: 80000, 9: 20000}
-    price = prices.get(item_id)
     
-    if not price:
-        return jsonify({'error': 'Item not found'}), 404
-        
-    if user.points < price:
-        return jsonify({'error': _('error')}), 400
-        
-    user.points -= price
-    db.session.commit()
-    return jsonify({'message': 'Success'})
+    user = User.query.get(session['user_id'])
+    item = next((i for i in SHOP_ITEMS if i['id'] == item_id), None)
+    
+    if item and user.points >= item['price']:
+        user.points -= item['price']
+        db.session.commit()
+        return jsonify({'message': 'Success'})
+    return jsonify({'error': 'Not enough Tenge'}), 400
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True, host='0.0.0.0', port=5000)

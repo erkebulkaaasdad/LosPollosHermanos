@@ -38,7 +38,7 @@
         margin-bottom: 10px;
         border: 1px solid #ddd;
         border-radius: 6px;
-        font-size: 16px; /* Prevent zoom on iOS */
+        font-size: 16px;
         box-sizing: border-box;
     }
     .search-hint {
@@ -68,11 +68,16 @@
     </div>
     
     <div id="basicFields">
-        <label>{{ _('email_label') }}</label>
-        <input type="email" id="email" placeholder="example@mail.com">
+        <label>{{ _('username_label') }}</label>
+        <input type="text" id="username" placeholder="{{ _('username_label') }}">
         
         <label>{{ _('password') }}</label>
         <input type="password" id="password" placeholder="******">
+        
+        <div id="confirmPasswordField" style="display: none;">
+            <label>{{ _('confirm_password') }}</label>
+            <input type="password" id="confirm_password" placeholder="******">
+        </div>
     </div>
     
     <div id="registerFields" class="location-fields">
@@ -123,6 +128,7 @@
   function switchTab(mode) {
     currentMode = mode;
     const regFields = document.getElementById('registerFields');
+    const confirmFields = document.getElementById('confirmPasswordField');
     const submitBtn = document.getElementById('submitBtn');
     const tabLogin = document.getElementById('tabLogin');
     const tabRegister = document.getElementById('tabRegister');
@@ -132,12 +138,14 @@
 
     if (mode === 'register') {
         regFields.style.display = 'block';
+        confirmFields.style.display = 'block';
         submitBtn.innerText = "{{ _('register') }}";
         submitBtn.style.background = "var(--success-color)";
         tabRegister.classList.add('active');
         tabLogin.classList.remove('active');
     } else {
         regFields.style.display = 'none';
+        confirmFields.style.display = 'none';
         submitBtn.innerText = "{{ _('login') }}";
         submitBtn.style.background = "var(--primary-color)";
         tabLogin.classList.add('active');
@@ -176,31 +184,47 @@
   }
 
   async function handleAuth() {
-    const email = document.getElementById('email').value;
+    const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const messageDiv = document.getElementById('message');
     
-    if (!email || !password) {
+    if (!username || !password) {
       alert("{{ _('fill_all') }}");
       return;
     }
 
-    const payload = { email, password };
+    const formData = new FormData();
+    formData.append('username', username);
+    formData.append('password', password);
     
     if (currentMode === 'register') {
-      payload.country = document.getElementById('country').value;
-      if (payload.country === "Казахстан") {
-        payload.region = document.getElementById('region').value;
-        payload.city = document.getElementById('city').value;
+      const confirm_password = document.getElementById('confirm_password').value;
+      if (password !== confirm_password) {
+        alert("{{ _('password_mismatch') }}");
+        return;
+      }
+      formData.append('confirm_password', confirm_password);
+      
+      const country = document.getElementById('country').value;
+      let city = "";
+      let region = "";
+      
+      if (country === "Казахстан") {
+        region = document.getElementById('region').value;
+        city = document.getElementById('city').value;
       } else {
-        payload.region = "Other";
-        payload.city = document.getElementById('otherCity').value;
+        region = "Other";
+        city = document.getElementById('otherCity').value;
       }
       
-      if (!payload.country || !payload.city) {
+      if (!country || !city) {
         alert("{{ _('fill_all') }}");
         return;
       }
+      
+      formData.append('country', country);
+      formData.append('region', region);
+      formData.append('city', city);
     }
 
     const url = currentMode === 'login' ? '/login' : '/register';
@@ -208,8 +232,7 @@
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: formData
       });
 
       const result = await response.json();
