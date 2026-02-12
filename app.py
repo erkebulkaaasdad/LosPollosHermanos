@@ -131,6 +131,16 @@ TRANSLATIONS = {
         'item_lunch_desc': 'Бесплатное комбо в нашем ресторане',
         'item_tools': 'Инструменты',
         'item_tools_desc': 'Набор профессиональных инструментов',
+        'item_powerbank': 'Повербанк',
+        'item_powerbank_desc': 'Мощный аккумулятор для ваших гаджетов',
+        'item_backpack': 'Рюкзак',
+        'item_backpack_desc': 'Вместительный рюкзак для работы',
+        'item_bicycle': 'Велосипед',
+        'item_bicycle_desc': 'Для быстрого передвижения по городу',
+        'item_scooter': 'Электросамокат',
+        'item_scooter_desc': 'Современный транспорт для активных',
+        'item_headphones': 'Наушники',
+        'item_headphones_desc': 'Беспроводные наушники с шумоподавлением',
         'type_pothole': 'Яма на дороге',
         'type_traffic_light': 'Сломанный светофор',
         'type_hatch': 'Открытый люк',
@@ -200,10 +210,20 @@ TRANSLATIONS = {
         'item_cap_desc': 'LosPollos логотипі бар кепка',
         'item_shirt': 'Футболка',
         'item_shirt_desc': 'Үздік жұмысшыларға арналған стильді футболка',
-        'item_lunch': 'Түскі асқа сертификат',
+        'item_lunch': 'Түскі ас сертификаты',
         'item_lunch_desc': 'Біздің мейрамханада тегін комбо',
         'item_tools': 'Құралдар',
         'item_tools_desc': 'Кәсіби құралдар жиынтығы',
+        'item_powerbank': 'Повербанк',
+        'item_powerbank_desc': 'Гаджеттеріңізге арналған қуатты аккумулятор',
+        'item_backpack': 'Рюкзак',
+        'item_backpack_desc': 'Жұмысқа арналған сыйымды рюкзак',
+        'item_bicycle': 'Велосипед',
+        'item_bicycle_desc': 'Қала ішінде жылдам қозғалу үшін',
+        'item_scooter': 'Электросамокат',
+        'item_scooter_desc': 'Белсенділерге арналған заманауи көлік',
+        'item_headphones': 'Құлаққап',
+        'item_headphones_desc': 'Шуды басатын сымсыз құлаққаптар',
         'type_pothole': 'Жолдағы шұңқыр',
         'type_traffic_light': 'Бұзылған бағдаршам',
         'type_hatch': 'Ашық люк',
@@ -400,10 +420,15 @@ def shop():
         return redirect(url_for('auth'))
     
     items = [
-        {'id': 1, 'name': _('item_cap'), 'desc': _('item_cap_desc'), 'price': 10000},
-        {'id': 2, 'name': _('item_shirt'), 'desc': _('item_shirt_desc'), 'price': 15000},
-        {'id': 3, 'name': _('item_lunch'), 'desc': _('item_lunch_desc'), 'price': 5000},
-        {'id': 4, 'name': _('item_tools'), 'desc': _('item_tools_desc'), 'price': 25000},
+        {'id': 1, 'name': _('item_cap'), 'desc': _('item_cap_desc'), 'price': 5000},
+        {'id': 2, 'name': _('item_shirt'), 'desc': _('item_shirt_desc'), 'price': 8000},
+        {'id': 3, 'name': _('item_lunch'), 'desc': _('item_lunch_desc'), 'price': 3000},
+        {'id': 4, 'name': _('item_tools'), 'desc': _('item_tools_desc'), 'price': 15000},
+        {'id': 5, 'name': _('item_powerbank'), 'desc': _('item_powerbank_desc'), 'price': 12000},
+        {'id': 6, 'name': _('item_backpack'), 'desc': _('item_backpack_desc'), 'price': 10000},
+        {'id': 7, 'name': _('item_bicycle'), 'desc': _('item_bicycle_desc'), 'price': 50000},
+        {'id': 8, 'name': _('item_scooter'), 'desc': _('item_scooter_desc'), 'price': 80000},
+        {'id': 9, 'name': _('item_headphones'), 'desc': _('item_headphones_desc'), 'price': 20000},
     ]
     return render_template('shop.html', user=user, items=items)
 
@@ -413,7 +438,7 @@ def buy(item_id):
         return jsonify({'error': 'Unauthorized'}), 401
         
     user = User.query.get(session['user_id'])
-    prices = {1: 10000, 2: 15000, 3: 5000, 4: 25000}
+    prices = {1: 5000, 2: 8000, 3: 3000, 4: 15000, 5: 12000, 6: 10000, 7: 50000, 8: 80000, 9: 20000}
     price = prices.get(item_id)
     
     if not price:
