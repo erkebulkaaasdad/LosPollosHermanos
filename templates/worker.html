@@ -45,7 +45,7 @@
         {% endif %}
         <strong>{{ _(task.title) }}</strong><br>
         📍 {{ task.country }}, {{ task.city }}, {{ task.location }}<br>
-        {{ 'Выплата' if current_lang == 'ru' else 'Төлем' }}: {{ task.reward_points }} ₸<br><br>
+        {{ 'Выплата' if current_lang == 'ru' else 'Төлем' }}: {{ task.price }} ₸<br><br>
         
         <div class="upload-area">
           <label>{{ _('proof_photo') }}</label><br>

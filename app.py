@@ -37,6 +37,7 @@ class Report(db.Model):
     reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     report_photo = db.Column(db.String(200))
     proof_photo = db.Column(db.String(200))
+    price = db.Column(db.Integer, default=5000)  # Custom price set by citizen
 
 # --- Translations ---
 TRANSLATIONS = {
@@ -124,7 +125,11 @@ TRANSLATIONS = {
         'item_bike': 'Велосипед',
         'item_bike_desc': 'Надежный городской велосипед',
         'item_scooter': 'Электросамокат',
-        'item_scooter_desc': 'Быстрый способ передвижения по городу'
+        'item_scooter_desc': 'Быстрый способ передвижения по городу',
+        'price': 'Цена',
+        'set_price': 'Установить цену (₸)',
+        'min_price': 'Минимальная цена: 1000 ₸',
+        'balance': 'Баланс'
     },
     'kk': {
         'welcome_title': 'LosPollos — Қалалық Шешімдер',
@@ -210,7 +215,11 @@ TRANSLATIONS = {
         'item_bike': 'Велосипед',
         'item_bike_desc': 'Сенімді қалалық велосипед',
         'item_scooter': 'Электросамокат',
-        'item_scooter_desc': 'Қала бойынша жылдам қозғалу тәсілі'
+        'item_scooter_desc': 'Қала бойынша жылдам қозғалу тәсілі',
+        'price': 'Баға',
+        'set_price': 'Баға белгілеу (₸)',
+        'min_price': 'Ең аз баға: 1000 ₸',
+        'balance': 'Балансы'
     }
 }
 
@@ -355,10 +364,16 @@ def submit_report():
     country = request.form.get('country')
     region = request.form.get('region')
     city = request.form.get('city')
+    price = request.form.get('price', 5000)
     photo = request.files.get('photo')
     
-    # Debug print
-    print(f"DEBUG: title={title}, location={location}, country={country}, city={city}")
+    # Validate price
+    try:
+        price = int(price)
+        if price < 1000:
+            return jsonify({'error': 'Minimum price is 1000 ₸'}), 400
+    except (ValueError, TypeError):
+        price = 5000
     
     if not title or not location or not country or not city:
         return jsonify({'error': _('fill_all')}), 400
@@ -375,7 +390,8 @@ def submit_report():
         region=region, 
         city=city,
         reporter_id=session['user_id'],
-        report_photo=filename
+        report_photo=filename,
+        price=price
     )
     db.session.add(new_report)
     db.session.commit()
@@ -400,7 +416,7 @@ def complete_task(task_id):
         
         task.status = 'completed'
         task.proof_photo = filename
-        user.points += 5000
+        user.points += task.price  # Use custom price from task
         db.session.commit()
         return jsonify({'message': 'Success'})
     return jsonify({'error': 'Task not found'}), 404

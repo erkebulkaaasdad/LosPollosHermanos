@@ -94,6 +94,10 @@
     <label>{{ _('photo') }}</label>
     <input type="file" id="photo" accept="image/*">
 
+    <label>{{ _('set_price') }}</label>
+    <input type="number" id="price" min="1000" value="5000" placeholder="5000">
+    <small>{{ _('min_price') }}</small>
+
     <button onclick="submitReport()">{{ _('submit') }}</button>
   </div>
 
@@ -160,6 +164,7 @@
     const region = country === "Казахстан" ? document.getElementById("region").value : "Other";
     const city = country === "Казахстан" ? document.getElementById("city").value : document.getElementById("otherCity").value;
     const photoInput = document.getElementById("photo");
+    const price = document.getElementById('price').value;
     
     if (!location || !city || !country) {
       alert("{{ _('fill_all') }}");
@@ -172,6 +177,7 @@
     formData.append('country', country);
     formData.append('region', region);
     formData.append('city', city);
+    formData.append('price', price);
     if (photoInput.files[0]) {
         formData.append('photo', photoInput.files[0]);
     }
