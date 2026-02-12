@@ -294,20 +294,24 @@ def register():
         
     hashed_pw = generate_password_hash(password)
     new_user = User(username=username, password=hashed_pw, country=country, region=region, city=city)
-    db.session.add(new_user)
-    db.session.commit()
-    return jsonify({'message': _('success_reg')})
+    try:
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify({'message': _('success_reg')})
+    except Exception as e:
+        db.session.rollback()
+
+        return jsonify({'error': 'Server error during registration'}), 500
 
 @app.route('/login', methods=['POST'])
 def login():
     username = request.form.get('username')
     password = request.form.get('password')
     user = User.query.filter_by(username=username).first()
-    
     if user and check_password_hash(user.password, password):
-        session['user_id'] = user.id
-        return jsonify({'message': 'Success'})
-    return jsonify({'error': 'Invalid credentials'}), 401
+        session["user_id"] = user.id
+        return jsonify({"message": "Success"})
+    return jsonify({"error": "Invalid credentials"}), 401
 
 @app.route('/logout')
 def logout():
@@ -420,7 +424,9 @@ def buy(item_id):
         return jsonify({'message': 'Success'})
     return jsonify({'error': 'Not enough Tenge'}), 400
 
+with app.app_context():
+    db.create_all()
+
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(debug=True, host='0.0.0.0', port=5000)
